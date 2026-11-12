@@ -1,0 +1,44 @@
+REQUISITOS NAO FUNCIONAIS - SISTEMA DE GERENCIAMENTO DE RESTAURANTES
+
+1. SEGURANCA
+- Senhas de usuarios devem ser armazenadas com hash BCrypt; nunca em texto puro.
+- A API deve exigir autenticacao por token JWT nas rotas privadas.
+- Cada perfil deve acessar somente os recursos autorizados.
+- Consultas e alteracoes no banco devem utilizar JPA/consultas parametrizadas.
+- Nao concatenar dados enviados pelo usuario em comandos SQL.
+- Validar entradas, limitar tamanhos e rejeitar valores invalidos.
+- Segredos, senhas e certificados nunca devem ser versionados no Git.
+- Respostas de erro nao devem revelar SQL, stack trace ou credenciais.
+
+2. INTEGRIDADE
+- Relacionamentos devem possuir chaves estrangeiras.
+- Valores monetarios devem usar DECIMAL/BigDecimal.
+- Pedidos devem preservar o preco unitario praticado no momento da compra.
+- Exclusoes de produtos devem ser logicas para preservar historicos.
+- Alteracoes de pedido e estoque devem ocorrer em transacoes.
+
+3. DISPONIBILIDADE E RECUPERACAO
+- Prever backup automatico e teste periodico de restauracao do MySQL.
+- Registrar logs sem incluir senhas, tokens ou dados sensiveis.
+- Monitorar a saude da aplicacao e do banco.
+
+4. DESEMPENHO
+- Criar indices para consultas frequentes (pedido/status, cliente/data, produto/nome).
+- Usar paginacao nos endpoints de listagem quando o volume crescer.
+- Evitar carregar relacionamentos desnecessarios.
+
+5. MANUTENIBILIDADE
+- Separar controller, service, repository, model, dto, config e security.
+- Versionar alteracoes do banco com Flyway.
+- Criar testes automatizados para regras e permissoes.
+- Documentar endpoints e variaveis de ambiente.
+
+6. USABILIDADE E ACESSIBILIDADE
+- Interfaces devem funcionar em computadores e celulares.
+- Mensagens de validacao devem ser objetivas.
+- Fluxos de cliente, cozinha e administrador devem ser separados.
+
+7. CONFIGURACAO PELO ADMINISTRADOR
+- O administrador pode habilitar/desabilitar modulos funcionais por recurso.
+- Controles essenciais de seguranca, autenticacao, autorizacao e integridade nao podem ser desligados pela interface administrativa.
+- Recursos fiscais permanecem desligados ate que certificado, credenciamento, ambiente, regras estaduais e integracao sejam configurados e homologados.

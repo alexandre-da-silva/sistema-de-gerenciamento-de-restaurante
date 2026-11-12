@@ -1,115 +1,63 @@
 # Sistema de Gerenciamento de Restaurantes
 
-Sistema desenvolvido como parte de um projeto acadêmico da UC HUB, com a proposta de organizar e centralizar os principais processos de um restaurante em uma única plataforma.
+**Projeto acadêmico da UC HUB** · Em planejamento e desenvolvimento
 
-> **Status:** em planejamento e desenvolvimento.
+Aplicação web para centralizar o atendimento de um restaurante, do registro do pedido ao fechamento da comanda. O projeto conecta salão, cozinha, caixa e gerência para reduzir erros de anotação, facilitar o acompanhamento do preparo e dar ao gerente uma visão das vendas e do estoque.
 
-## Sobre o projeto
+## Como o sistema vai funcionar
 
-A proposta é criar uma aplicação simples e intuitiva para auxiliar no gerenciamento de pedidos, mesas, estoque e vendas. A ideia é reduzir falhas de comunicação entre atendimento e cozinha, facilitar o acompanhamento dos pedidos e oferecer ao responsável pelo estabelecimento uma visão mais organizada da operação.
+1. O gerente cadastra os itens do cardápio, as mesas e os itens de estoque.
+2. O garçom registra os itens, as quantidades e as observações do pedido em uma mesa ou comanda.
+3. A cozinha recebe o pedido na fila e atualiza seu status durante o preparo.
+4. O garçom acompanha a fila, entrega o pedido e registra a entrega.
+5. O caixa confere a comanda, registra o pagamento e encerra a conta.
+6. O gerente consulta o histórico de vendas e acompanha as movimentações de estoque.
 
-O projeto tem foco acadêmico e busca implementar as funcionalidades essenciais de um sistema de gerenciamento de restaurantes.
+**Status do pedido** · Recebido → Em preparo → Pronto → Entregue
 
-## Problema identificado
+## Funcionalidades previstas
 
-Em restaurantes que utilizam anotações em papel, planilhas e comunicação verbal, algumas atividades podem ficar descentralizadas. Isso pode ocasionar:
-
-- Pedidos anotados incorretamente ou esquecidos;
-- Demora na comunicação entre garçons e cozinha;
-- Dificuldade para acompanhar o andamento dos pedidos;
-- Divergências no fechamento do caixa;
-- Falta de atualização e controle do estoque;
-- Dificuldade para consultar o histórico de vendas.
-
-## Objetivo
-
-Desenvolver um sistema que centralize as informações e facilite o gerenciamento das atividades diárias do restaurante, tornando os processos mais organizados, ágeis e confiáveis.
-
-## Solução proposta
-
-A aplicação deverá permitir o cadastro de produtos e preços, o registro de pedidos vinculados a mesas ou comandas, o acompanhamento do preparo pela cozinha, o controle básico de estoque e o registro de pagamentos e vendas.
-
-## Funcionalidades planejadas
-
-- **Autenticação e acesso:** login e controle de acesso conforme o perfil do usuário.
-- **Cardápio:** cadastro, edição e consulta de produtos, preços e disponibilidade.
-- **Mesas e comandas:** organização das mesas e associação de pedidos.
-- **Pedidos:** lançamento de itens, quantidades e observações.
-- **Painel da cozinha:** visualização dos pedidos e atualização de status — recebido, em preparo, pronto e entregue.
-- **Estoque:** registro de entradas e saídas e consulta das quantidades disponíveis.
-- **Caixa:** registro de pagamentos e encerramento de comandas.
-- **Relatórios:** consulta básica do histórico de vendas e dos pedidos.
-
-*As funcionalidades acima representam o escopo previsto; ainda não significa que estejam implementadas.*
-
-## Perfis de usuário
-
-| Perfil | Responsabilidade prevista |
+| Área | Funcionalidades |
 | --- | --- |
-| Gerente / Administrador | Gerenciar cadastros, acompanhar a operação e consultar relatórios. |
-| Garçom / Atendente | Registrar pedidos e acompanhar as comandas das mesas. |
-| Cozinheiro / Equipe da cozinha | Visualizar pedidos e atualizar o andamento do preparo. |
-| Operador de caixa | Registrar pagamentos e finalizar comandas. |
-| Cliente | Poderá consultar o cardápio, caso essa funcionalidade seja incluída no escopo. |
+| Acesso | Login e permissões por perfil de usuário. |
+| Cardápio | Cadastro e edição de produtos, descrições, preços e disponibilidade. |
+| Mesas e comandas | Organização das mesas e associação de pedidos às comandas. |
+| Pedidos e cozinha | Registro de itens e observações, fila de preparo e atualização do status. |
+| Estoque | Registro de entradas e saídas, consulta de quantidades e alertas de baixo estoque. |
+| Caixa e vendas | Registro de pagamentos, encerramento de comandas e histórico de vendas. |
+| Relatórios | Consulta de vendas por período e produtos mais vendidos. |
 
-## Fluxo de funcionamento previsto
+O acesso do cliente ao cardápio, a baixa automática de estoque e a integração com meios de pagamento dependem da definição do escopo.
 
-1. O usuário realiza o login.
-2. O gerente cadastra os produtos, preços, mesas e informações de estoque.
-3. O garçom registra o pedido e o associa a uma mesa ou comanda.
-4. A cozinha recebe o pedido e atualiza seu status durante o preparo.
-5. O garçom acompanha o andamento e entrega o pedido.
-6. O caixa registra o pagamento e encerra a comanda.
-7. O sistema atualiza os registros de vendas e as informações de estoque previstas.
+## Perfis de acesso
+
+| Perfil | Responsabilidades |
+| --- | --- |
+| Gerente ou administrador | Gerenciar cadastros, controlar o estoque e consultar vendas e relatórios. |
+| Garçom ou atendente | Registrar pedidos, acompanhar o preparo e confirmar a entrega. |
+| Equipe da cozinha | Consultar a fila e atualizar o andamento do preparo. |
+| Operador de caixa | Conferir comandas, registrar pagamentos e finalizar contas. |
 
 ## Tecnologias previstas
 
-| Tecnologia | Utilização |
+| Tecnologia | Uso no projeto |
 | --- | --- |
-| Java | Desenvolvimento da aplicação e regras de negócio. |
-| Spring Boot | Construção da estrutura do backend e das APIs. |
-| MySQL | Armazenamento e gerenciamento dos dados. |
-| HTML | Estrutura das páginas da aplicação. |
-| CSS | Estilização e organização visual. |
-| JavaScript | Interatividade da interface. |
-| Git e GitHub | Versionamento e colaboração no projeto. |
+| Java e Spring Boot | Backend, APIs e regras de negócio. |
+| MySQL | Armazenamento relacional de usuários, produtos, mesas, pedidos, estoque e vendas. |
+| HTML, CSS e JavaScript | Estrutura, aparência e interatividade da interface web. |
+| Git e GitHub | Controle de versões e colaboração. |
 
-## Indicadores para avaliar os resultados
+## Segurança e privacidade
 
-- Redução de erros e esquecimentos nos pedidos;
-- Tempo médio entre o registro e a entrega do pedido;
-- Melhor acompanhamento do preparo;
-- Redução de divergências no caixa;
-- Maior controle das entradas e saídas do estoque;
-- Organização e produtividade das atividades.
+O projeto prevê proteção de credenciais, permissões por função e coleta apenas dos dados necessários para a operação. O protótipo pode ser testado com dados fictícios. O uso de dados pessoais reais deverá observar a LGPD.
 
-## Organização inicial dos módulos
+## Como avaliar o resultado
 
-A aplicação poderá ser organizada nos seguintes módulos:
-
-- Autenticação e usuários;
-- Produtos e cardápio;
-- Mesas e comandas;
-- Pedidos;
-- Cozinha;
-- Estoque;
-- Caixa e vendas;
-- Relatórios.
-
-A estrutura de pastas e os detalhes de implementação serão definidos durante o desenvolvimento.
-
-## Segurança e proteção de dados
-
-O desenvolvimento deverá considerar boas práticas de segurança, como armazenamento adequado de credenciais, controle de acesso por perfil e proteção das informações. Também deverão ser observados os princípios da Lei Geral de Proteção de Dados (LGPD), evitando coletar informações pessoais desnecessárias.
-
-## Escopo acadêmico
-
-Este repositório reúne o desenvolvimento do projeto acadêmico **Sistema de Gerenciamento de Restaurantes**. O sistema será construído gradualmente, e as funcionalidades serão documentadas conforme forem implementadas e testadas.
+- Número de pedidos registrados incorretamente ou esquecidos.
+- Tempo médio entre o registro e a entrega de um pedido.
+- Número de divergências no fechamento do caixa.
+- Número de faltas ou perdas de ingredientes identificadas.
 
 ## Autor
 
-Desenvolvido por [alexandre-da-silva](https://github.com/alexandre-da-silva).
-
----
-
-Projeto acadêmico — UC HUB.
+[Alexandre da Silva](https://github.com/alexandre-da-silva) · Projeto acadêmico da UC HUB

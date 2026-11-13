@@ -80,7 +80,7 @@ public class SecurityConfig {
     @Order(1)
     SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/", "/index.html", "/css/**", "/js/**",
+                .securityMatcher("/", "/index.html", "/css/**", "/js/**", "/images/**", "/media/**", "/client/**",
                         "/api/v1/auth/login", "/api/v1/auth/registrar", "/api/v1/publico/**")
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
@@ -105,7 +105,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").authenticated()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/cozinha/**").hasAnyRole("ADMIN", "COZINHA")
-                        .requestMatchers("/api/v1/cliente/**").hasAnyRole("ADMIN", "CLIENTE")
+                        .requestMatchers("/api/v1/cliente/**").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))

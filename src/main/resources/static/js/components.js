@@ -1,4 +1,8 @@
 function form(title, fields, save) {
+  const submit = $("form").querySelector("button.action");
+  submit.hidden = false;
+  submit.textContent = "Salvar";
+  $("close").textContent = "Cancelar";
   $("formTitle").textContent = title;
   $("formError").textContent = "";
   $("fields").innerHTML = fields

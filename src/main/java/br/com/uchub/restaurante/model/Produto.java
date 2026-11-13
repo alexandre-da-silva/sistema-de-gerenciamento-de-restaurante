@@ -21,6 +21,21 @@ public class Produto {
     private boolean ativo = true;
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
+    @Column(name="imagem_url", length=255) private String imagemUrl;
+    @Column(name="tempo_preparo") private Integer tempoPreparo = 20;
+    @Column(length=60) private String tipo;
+    private boolean destaque;
+    @Column(name="preco_promocional", precision=12, scale=2) private BigDecimal precoPromocional;
+    public String getImagemUrl() { return imagemUrl; }
+    public Integer getTempoPreparo() { return tempoPreparo; }
+    public String getTipo() { return tipo; }
+    public boolean isDestaque() { return destaque; }
+    public BigDecimal getPrecoPromocional() { return precoPromocional; }
+    public BigDecimal getPrecoVenda() { return precoPromocional == null ? preco : precoPromocional; }
+    public void apresentar(String imagem, Integer tempo, String tipo, boolean destaque, BigDecimal promocao) {
+        this.imagemUrl=imagem; this.tempoPreparo=tempo==null?20:tempo;
+        this.tipo=tipo; this.destaque=destaque; this.precoPromocional=promocao;
+    }
     protected Produto() {}
     public Produto(String nome, String descricao, BigDecimal preco, Categoria categoria) {
         this.nome = nome; this.descricao = descricao; this.preco = preco;

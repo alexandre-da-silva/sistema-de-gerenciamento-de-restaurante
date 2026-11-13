@@ -1,5 +1,6 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
+let nomeUsuario = "";
 let token = "",
   perfil = "",
   page = "";

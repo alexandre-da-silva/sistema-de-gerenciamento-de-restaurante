@@ -16,3 +16,7 @@ target/
 *.class
 *.log
 .DS_Store
+/uploads/
+/frontend/node_modules/
+/frontend/.cache/
+/tests/*.png

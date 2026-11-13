@@ -113,3 +113,11 @@ As movimentações de estoque recebem `quantidade` positiva para entrada e negat
 - Ficha técnica, baixa automática, estornos, pagamentos parciais e gestão completa de usuários/mesas/categorias precisam de implementação.
 - Criptografia de todos os dados em repouso, backup automático, auditoria e rate limiting precisam de configuração/implementação adicional.
 - O MySQL do computador do usuário será inicializado quando a aplicação for executada nesse ambiente.
+
+## Painéis AstraChefe
+
+O painel ADMIN foi redesenhado conforme a referência visual fornecida, com dashboard,
+pedidos, mesas, cardápio, cozinha, estoque, clientes, relatórios, financeiro e configurações.
+Consulte [docs/PAINEL_RESTOERP.md](docs/PAINEL_RESTOERP.md) para execução, novos endpoints e limites da validação.
+
+O cliente agora possui cardápio, carrinho, acompanhamento, histórico, promoções, avaliações e perfil. Veja [docs/ASTRACHEFE.md](docs/ASTRACHEFE.md).

@@ -37,8 +37,7 @@ const stock=[{id:1,nome:'Arroz',unidade_medida:'kg',quantidade_atual:1,quantidad
  await page.locator('nav [data-nav="Cardápio"]').click();await page.locator('[data-product="1"]').click();
  await page.locator('#modal [name=nome]').fill('Picanha especial');await page.locator('#modal button.action').click();await page.locator('#modal').waitFor({state:'hidden'});
  assert.ok(writes.some(w=>w.method==='PUT'&&w.body.nome==='Picanha especial'));
- await page.locator('nav [data-nav="Pedidos"]').click();await page.getByRole('button',{name:'Novo pedido',exact:true}).click();await page.locator('#add-order-line').click();await page.locator('#modal button.action').click();await page.locator('#modal').waitFor({state:'hidden'});
- assert.ok(writes.some(w=>w.endpoint==='admin/pedidos'&&w.body.itens.length===2&&w.body.clienteId===1));
+ await page.locator('nav [data-nav="Pedidos"]').click();assert.equal(await page.getByRole('button',{name:'Novo pedido',exact:true}).count(),0);
  await page.locator('nav [data-nav="Cozinha"]').click();await page.locator('[data-step="4"]').click();assert.ok(writes.some(w=>w.endpoint==='cozinha/pedidos/4/status'&&w.body.status==='EM_PREPARO'));
  await page.locator('nav [data-nav="Financeiro"]').click();await page.locator('[data-pay="7"]').waitFor();assert.equal(await page.locator('[data-pay="6"]').count(),0);await page.locator('[data-pay="7"]').click();await page.locator('#modal button.action').click();await page.locator('#modal').waitFor({state:'hidden'});assert.ok(writes.some(w=>w.endpoint==='admin/pedidos/7/pagamentos'&&w.body.referencia));
  await page.locator('nav [data-nav="Clientes"]').click();await page.locator('#admin-search').fill('Juliana');assert.equal(await page.locator('tbody tr').count(),1);
@@ -46,6 +45,6 @@ const stock=[{id:1,nome:'Arroz',unidade_medida:'kg',quantidade_atual:1,quantidad
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile page must not overflow horizontally');
  await page.getByRole('button',{name:'Alternar menu',exact:true}).click();await page.locator('nav [data-nav="Mesas"]').click();assert.equal(await page.locator('.admin-app.menu-open').count(),0);
  empty=true;await page.evaluate(()=>goAdmin('Dashboard'));await page.getByText('Tudo em dia por aqui').waitFor();await page.screenshot({path:path.resolve('tests/dashboard-empty.png'),fullPage:true});
- unauthorized=true;await page.getByRole('button',{name:'Atualizar dados'}).click();await page.getByRole('heading',{name:'Entrar',exact:true}).waitFor();assert.ok((await page.locator('#error').innerText()).includes('sessão expirou'));
- assert.deepEqual(errors,[]);console.log('PASS: 10 telas, edição, pedido com 2 itens, cozinha, pagamento, busca, mobile, vazio e sessão expirada.');await browser.close();
+ unauthorized=true;await page.getByRole('button',{name:'Atualizar dados'}).click();await page.getByRole('heading',{name:'AstraChefe',exact:true}).waitFor();assert.ok((await page.locator('#error').innerText()).includes('sessão expirou'));
+ assert.deepEqual(errors,[]);console.log('PASS: 10 telas, edição, bloqueio de criação pelo administrador, cozinha, pagamento, busca, mobile, vazio e sessão expirada.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

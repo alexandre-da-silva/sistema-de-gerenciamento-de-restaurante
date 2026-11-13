@@ -11,7 +11,7 @@ function login() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Entrar</h1>
+            <h1>AstraChefe</h1>
             
             <form id="login">
                 <label><span class="sr-only">E-mail</span><input placeholder="E-mail" name="email" type="email" required maxlength="180" autocomplete="username"></label>
@@ -42,7 +42,7 @@ function cadastro() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Criar conta</h1>
+            <h1>Crie sua conta AstraChefe</h1>
             
             <form id="cadastro">
                 <label><span class="sr-only">Nome</span><input placeholder="Nome" name="nome" required maxlength="120" autocomplete="name"></label>

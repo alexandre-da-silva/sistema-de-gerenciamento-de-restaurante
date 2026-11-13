@@ -28,15 +28,6 @@ public class PainelController {
     public PainelController(PainelRepository painel, RecursoSistemaRepository recursos, PedidoService pedidos, UsuarioRepository usuarios) {
         this.painel=painel; this.recursos=recursos; this.pedidos=pedidos; this.usuarios=usuarios;
     }
-    public record NovoPedido(@NotNull Long clienteId, Long mesaId,
-        @NotEmpty List<@Valid ItemPedidoRequest> itens, @Size(max=1000) String observacao) {}
-    @PostMapping("/pedidos")
-    public PedidoResponse criar(@Valid @RequestBody NovoPedido request) {
-        var cliente=usuarios.findById(request.clienteId())
-            .filter(u -> u.isAtivo() && u.getPerfil()==PerfilUsuario.CLIENTE)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"Selecione um cliente ativo."));
-        return pedidos.criar(cliente.getEmail(), new PedidoRequest(request.mesaId(),request.itens(),request.observacao()));
-    }
     @GetMapping("/dashboard")
     public Map<String,Object> dashboard(@RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate data) {
         return painel.resumo(data==null ? LocalDate.now(ZoneId.of("America/Sao_Paulo")) : data, habilitado("CAIXA_E_PAGAMENTOS"), habilitado("CONTROLE_ESTOQUE"));

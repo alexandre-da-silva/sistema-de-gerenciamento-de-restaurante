@@ -1,4 +1,4 @@
-# Painel administrativo RestoERP
+# Painel administrativo AstraChefe
 
 Interface administrativa refeita com base na referência visual fornecida: menu vinho,
 destaques laranja, cartões, tabela de pedidos, mapa de mesas, cozinha, gráfico e ranking.
@@ -13,16 +13,15 @@ Nenhum dado fictício é usado pela aplicação. As fixtures estão apenas nos t
 4. Abra `http://localhost:8080` e entre com seu administrador.
 5. Em Configurações, habilite Estoque, Caixa e pagamentos e Relatórios se desejar utilizá-los.
 
-Não há nova migração nem necessidade de apagar tabelas. Os novos endpoints usam a estrutura V1.
+A migração V2 adiciona fotos, promoções, etapas dos pedidos, avaliações e mensagens. O Flyway a aplica ao iniciar; preserve a V1 e não apague tabelas.
 
 ## Telas e ações
 
 - Dashboard: indicadores por data, ocupação atual, pedidos em andamento, mapa de até 16 mesas,
   fila de cozinha, recebimentos por hora e ranking de produtos de pedidos pagos.
-- Pedidos: busca, filtro de status, detalhes, cancelamento nos estados permitidos e criação
-  em nome de um cliente ativo, com múltiplos itens, mesa opcional e observação.
+- Pedidos: busca, filtro, detalhes, mensagens e cancelamento permitido. Somente CLIENTE cria pedidos.
 - Mesas: consulta de ocupação, pedidos em aberto e cadastro.
-- Cardápio: cadastro, edição de preço/categoria/descrição e ativação/desativação.
+- Cardápio: foto JPG/PNG, descrição, categoria, tipo, tempo, preço, promoção, destaque e publicação/rascunho.
 - Cozinha: colunas Aguardando, Em preparo e Pronto, com avanço de status.
 - Estoque: saldo, limite mínimo e movimentação manual com motivo.
 - Clientes: cadastro de conta, consulta de contato, pedidos e histórico agregado.
@@ -37,7 +36,6 @@ consulta a API novamente; não há atualização automática em tempo real.
 
 - `GET /api/v1/admin/dashboard?data=AAAA-MM-DD`
 - `GET /api/v1/admin/pedidos/detalhes`
-- `POST /api/v1/admin/pedidos` — clienteId, mesaId opcional, itens e observacao opcional.
 - `GET /api/v1/admin/clientes`
 
 Listas de pedidos/clientes limitadas a 500 registros. Ocupação e fila são atuais mesmo
@@ -49,10 +47,9 @@ mas inclui pedidos ainda não pagos. Datas seguem a convenção de DATETIME já 
 ## Limites preservados
 
 Não foram implementados gateway de cobrança, emissão fiscal, baixa automática de estoque,
-estorno, pagamento parcial, reservas de mesa ou upload de fotos de produtos.
-Os produtos usam ícones neutros porque a API ainda não possui campo de imagem.
+estorno, pagamento parcial ou reservas de mesa. Produtos sem foto usam uma imagem neutra.
 A decoração lateral foi recortada da referência fornecida pelo usuário.
-A interface de clientes/cozinha fora do perfil ADMIN permanece no arquivo legacy.js.
+O cliente usa o novo painel React; o perfil COZINHA permanece no fluxo legado.
 
 ## Validação desta alteração
 
@@ -61,7 +58,7 @@ A interface de clientes/cozinha fora do perfil ADMIN permanece no arquivo legacy
   renderização e regressões de sessão.
 - Todos os arquivos JavaScript passaram em `node --check`.
 - Testes Java de autorização e validação adicionados em PainelAccessTest.
-- Maven não está disponível neste ambiente; testes Java e integração MySQL não executados.
+- Maven instalado, mas o acesso às dependências falhou. Testes Java e integração MySQL não executados.
 - Teste de navegador Playwright preparado em tests/admin-browser.cjs. Execução bloqueada
   pela restrição de sockets do ambiente; inspeção visual do navegador local também bloqueada.
   Portanto a aparência renderizada e os fluxos completos de navegador ainda precisam de validação.
@@ -74,3 +71,5 @@ Para executar os testes de navegador em um ambiente com Playwright:
 
 O teste usa uma API simulada, não altera o banco. TEST_BASE_URL permite mudar o endereço
 local e CHROMIUM_PATH permite indicar uma instalação própria do Chromium.
+
+Veja [ASTRACHEFE.md](ASTRACHEFE.md) para a experiência do cliente e testes atualizados.

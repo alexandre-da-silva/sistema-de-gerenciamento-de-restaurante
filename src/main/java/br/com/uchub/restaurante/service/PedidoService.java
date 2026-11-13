@@ -27,6 +27,10 @@ public class PedidoService {
         recursos.exigirHabilitado("PEDIDOS_ONLINE");
         Usuario cliente = usuarios.findByEmail(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."));
+        if(cliente.getPerfil()!=PerfilUsuario.CLIENTE || !cliente.isAtivo())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Somente clientes podem criar pedidos.");
+        var anterior=pedidos.findByClienteEmailAndReferencia(emailCliente,request.referencia());
+        if(anterior.isPresent())return toResponse(anterior.get());
         if (request.mesaId() != null) recursos.exigirHabilitado("MESAS_E_COMANDAS");
         Mesa mesa = request.mesaId() == null ? null : mesas.findById(request.mesaId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mesa não encontrada."));
@@ -43,7 +47,9 @@ public class PedidoService {
             pedido.adicionarItem(item);
             total = total.add(item.getSubtotal());
         }
-        pedido.definirTotal(total);
+        BigDecimal taxa=Boolean.TRUE.equals(request.taxaServico()) ? total.multiply(new BigDecimal("0.10")).setScale(2,java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        pedido.definirCheckout(taxa,request.referencia());
+        pedido.definirTotal(total.add(taxa));
         if (mesa != null) mesa.setStatus("OCUPADA");
         return toResponse(pedidos.save(pedido));
     }
@@ -76,12 +82,23 @@ public class PedidoService {
         }
         return toResponse(pedido);
     }
+    @Transactional
+    public PedidoResponse cancelarCliente(String email, Long id) {
+        Pedido pedido=pedidos.findById(id).filter(p -> p.getCliente().getEmail().equals(email))
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Pedido não encontrado."));
+        if(pedido.getStatus()!=StatusPedido.RECEBIDO)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Só é possível cancelar antes de iniciar o preparo.");
+        pedido.atualizarStatus(StatusPedido.CANCELADO);
+        if(pedido.getMesa()!=null)pedido.getMesa().setStatus("LIVRE");
+        return toResponse(pedido);
+    }
     private PedidoResponse toResponse(Pedido p) {
         List<PedidoResponse.Item> itens = p.getItens().stream().map(i -> new PedidoResponse.Item(
                 i.getProduto().getId(), i.getProduto().getNome(), i.getQuantidade(),
-                i.getPrecoUnitario(), i.getSubtotal())).toList();
+                i.getPrecoUnitario(), i.getSubtotal(),i.getProduto().getImagemUrl())).toList();
         return new PedidoResponse(p.getId(), p.getCliente().getNome(),
                 p.getMesa() == null ? null : p.getMesa().getNumero(), p.getStatus(),
-                p.getTotal(), p.getObservacao(), p.getCriadoEm(), itens);
+                p.getTotal(), p.getObservacao(), p.getCriadoEm(), itens,p.getTaxaServico(),p.getAtualizadoEm(),p.getEtapas(),
+                p.getItens().stream().map(i -> i.getProduto().getTempoPreparo()==null?20:i.getProduto().getTempoPreparo()).max(Integer::compare).orElse(20));
     }
 }

@@ -38,10 +38,10 @@ class PainelAccessTest {
     @Test @WithMockUser(roles="ADMIN") void adminCanReadOrders() throws Exception {
         mvc.perform(get("/api/v1/admin/pedidos/detalhes")).andExpect(status().isOk());
     }
-    @Test @WithMockUser(roles="ADMIN") void emptyOrderIsRejectedBeforeService() throws Exception {
-        mvc.perform(post("/api/v1/admin/pedidos").contentType("application/json")
-            .content("{\"clienteId\":1,\"itens\":[]}"))
-            .andExpect(status().isBadRequest());
+    @Test @WithMockUser(roles="ADMIN") void adminCannotCreateCustomerOrder() throws Exception {
+        mvc.perform(post("/api/v1/cliente/pedidos").contentType("application/json")
+            .content("{\"itens\":[]}"))
+            .andExpect(status().isForbidden());
         verifyNoInteractions(pedidos);
     }
 }

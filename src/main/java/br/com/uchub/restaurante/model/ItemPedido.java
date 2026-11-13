@@ -21,7 +21,7 @@ public class ItemPedido {
     protected ItemPedido() {}
     public ItemPedido(Produto produto, Integer quantidade) {
         this.produto = produto; this.quantidade = quantidade;
-        this.precoUnitario = produto.getPreco();
+        this.precoUnitario = produto.getPrecoVenda();
         this.subtotal = precoUnitario.multiply(BigDecimal.valueOf(quantidade));
     }
     void setPedido(Pedido pedido) { this.pedido = pedido; }

@@ -80,7 +80,7 @@ public class SecurityConfig {
     @Order(1)
     SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/", "/index.html", "/css/**", "/js/**",
+                .securityMatcher("/", "/index.html", "/css/**", "/js/**", "/images/**",
                         "/api/v1/auth/login", "/api/v1/auth/registrar", "/api/v1/publico/**")
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())

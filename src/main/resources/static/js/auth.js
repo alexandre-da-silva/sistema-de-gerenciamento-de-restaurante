@@ -1,7 +1,8 @@
 function iniciarSessao(response) {
   token = response.accessToken;
+  nomeUsuario = response.nome || "Administrador";
   perfil = response.perfil;
-  page = perfil === "COZINHA" ? "Cozinha" : "Cardápio";
+  page = perfil === "ADMIN" ? "Dashboard" : perfil === "COZINHA" ? "Cozinha" : "Cardápio";
   render();
 }
 

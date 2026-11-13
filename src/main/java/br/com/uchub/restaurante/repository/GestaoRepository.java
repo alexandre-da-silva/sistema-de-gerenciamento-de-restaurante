@@ -18,7 +18,7 @@ public class GestaoRepository {
     public List<Map<String, Object>> vendas() {
         return jdbc.queryForList("SELECT DATE(criado_em) dia, SUM(valor) total, COUNT(*) pagamentos FROM pagamentos WHERE status='CONFIRMADO' GROUP BY DATE(criado_em) ORDER BY dia DESC LIMIT 365");
     }
-    public List<Map<String, Object>> pedidos() { return jdbc.queryForList("SELECT * FROM pedidos ORDER BY id DESC LIMIT 500"); }
+    public List<Map<String, Object>> pedidos() { return jdbc.queryForList("SELECT p.*, EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO') AS pago FROM pedidos p ORDER BY p.id DESC LIMIT 500"); }
     public void categoria(String nome, String descricao) { jdbc.update("INSERT INTO categorias(nome,descricao) VALUES (?,?)", nome, descricao); }
     public void mesa(int numero, int capacidade) { jdbc.update("INSERT INTO mesas(numero,capacidade_pessoas) VALUES (?,?)",numero,capacidade); }
     public void ingrediente(String nome, String unidade) { jdbc.update("INSERT INTO ingredientes(nome,unidade_medida) VALUES (?,?)",nome,unidade); }

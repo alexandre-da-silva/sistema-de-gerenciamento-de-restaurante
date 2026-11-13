@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaurante</title>
+    <link rel="stylesheet" href="/css/app.css?v=5" />
+    <script src="/js/core.js?v=5" defer></script>
+    <script src="/js/api.js?v=5" defer></script>
+    <script src="/js/auth.js?v=5" defer></script>
+    <script src="/js/components.js?v=5" defer></script>
+    <script src="/js/app.js?v=5" defer></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Ative o JavaScript para acessar o restaurante.</noscript>
+    <dialog id="modal" aria-labelledby="formTitle">
+      <form id="form">
+        <h2 id="formTitle"></h2>
+        <div id="fields"></div>
+        <p id="formError" role="alert"></p>
+        <menu>
+          <button type="button" id="close" class="ghost">Cancelar</button>
+          <button class="action">Salvar</button>
+        </menu>
+      </form>
+    </dialog>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+FRONTEND UC HUB
+
+Abra http://localhost:8080 com Spring Boot iniciado.
+Arquivos em src/main/resources/static:
+index.html: entrada e estrutura da página.
+css/app.css: aparência e responsividade.
+js/core.js: estado da sessão e utilitários.
+js/api.js: chamadas HTTP e erros de autenticação.
+js/auth.js: login e cadastro.
+js/components.js: formulários compartilhados.
+js/app.js: navegação e telas operacionais.
+
+Atualização: substitua o projeto preservando seu .env. Pare e reinicie a aplicação. Atualize com Ctrl+F5.
+
+Login/cadastro possuem cadeia pública de segurança sem processamento de JWT. Rotas privadas continuam exigindo JWT e permissões. Requisições internas de erro preservam o erro original.
+
+Validação: sintaxe JavaScript verificada. Testes Spring incluídos, execução bloqueada pelo compilador Java disponível no ambiente de entrega. Execute mvn test com JDK 21.

@@ -1,0 +1,5 @@
+Abra http://localhost:8080 após iniciar o Spring Boot. Configure .env conforme README.
+O frontend utiliza a API real na mesma origem e mantém o token somente em memória.
+Validação realizada: sintaxe JavaScript. Compilação Java e execução com MySQL pendentes.
+Antes do uso real: configurar HTTPS, backups, política de retenção, contato do controlador e atendimento aos direitos dos titulares. Revisar bases legais e obrigações fiscais com responsáveis.
+Emissão fiscal permanece pendente de integração e homologação. Esta entrega não certifica conformidade com todas as leis.

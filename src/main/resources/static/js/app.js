@@ -1,5 +1,10 @@
 function render() {
  if(window.AstraClient)window.AstraClient.unmount();
- return perfil === "ADMIN" ? renderAdmin() : perfil === "CLIENTE" ? window.AstraClient.mount({token,nome:nomeUsuario,onLogout:()=>{token="";perfil="";nomeUsuario="";window.AstraClient.unmount();login();}}) : renderLegacy();
+ if(typeof salvarPagina==='function')salvarPagina();
+ return perfil === "ADMIN" ? renderAdmin() : perfil === "CLIENTE" ? window.AstraClient.mount({token,nome:nomeUsuario,initialPage:page,onNavigate:p=>{page=p;salvarPagina();},onLogout:encerrarSessao}) : renderLegacy();
 }
-login();
+window.addEventListener('DOMContentLoaded',restaurarSessao);
+setInterval(()=>{if(!token||document.visibilityState!=='visible'||$('modal')?.open)return;
+ if(perfil==='ADMIN'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))renderAdmin();
+ else if(perfil==='COZINHA')renderLegacy();
+},10000);

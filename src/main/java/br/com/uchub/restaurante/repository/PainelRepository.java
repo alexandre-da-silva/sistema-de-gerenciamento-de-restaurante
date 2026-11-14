@@ -22,7 +22,7 @@ public class PainelRepository {
             """);
         if (pedidos.isEmpty()) return pedidos;
         String placeholders = String.join(",", Collections.nCopies(pedidos.size(), "?"));
-        var itens = jdbc.queryForList("SELECT i.pedido_id,i.produto_id,p.nome AS produto,i.quantidade,i.preco_unitario,i.subtotal FROM itens_pedido i JOIN produtos p ON p.id=i.produto_id WHERE i.pedido_id IN (" + placeholders + ") ORDER BY i.id", pedidos.stream().map(p -> p.get("id")).toArray());
+        var itens = jdbc.queryForList("SELECT i.pedido_id,i.produto_id,CONCAT(p.nome,CASE WHEN i.configuracao IS NULL OR i.configuracao='' THEN '' ELSE CONCAT(' — ',i.configuracao) END) AS produto,i.setor_producao,i.quantidade,i.preco_unitario,i.subtotal FROM itens_pedido i JOIN produtos p ON p.id=i.produto_id WHERE i.pedido_id IN (" + placeholders + ") ORDER BY i.id", pedidos.stream().map(p -> p.get("id")).toArray());
         Map<Long, List<Map<String, Object>>> agrupados = new HashMap<>();
         for (var item : itens) agrupados.computeIfAbsent(((Number)item.get("pedido_id")).longValue(), id -> new ArrayList<>()).add(item);
         for (var pedido : pedidos) pedido.put("itens", agrupados.getOrDefault(((Number)pedido.get("id")).longValue(), List.of()));

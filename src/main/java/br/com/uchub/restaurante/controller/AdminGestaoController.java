@@ -16,6 +16,11 @@ public class AdminGestaoController {
     public AdminGestaoController(GestaoRepository repository, GestaoService service, RecursoService recursos) {
         this.repository=repository; this.service=service; this.recursos=recursos;
     }
+    public record NovoInsumo(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=120) String nome,@jakarta.validation.constraints.Pattern(regexp="kg|g|L|ml|un") @jakarta.validation.constraints.NotNull String unidade,@jakarta.validation.constraints.NotNull @jakarta.validation.constraints.DecimalMin("0") @jakarta.validation.constraints.Digits(integer=8,fraction=4) java.math.BigDecimal custoUnitario) {}
+    @PostMapping("/insumos") public void novoInsumo(@Valid @RequestBody NovoInsumo i){repository.jdbc().update("INSERT INTO ingredientes(nome,unidade_medida,custo_unitario) VALUES(?,?,?)",i.nome().trim(),i.unidade(),i.custoUnitario());}
+    @GetMapping("/insumos") public List<Map<String,Object>> insumos(){return repository.estoque();}
+    public record Custo(@jakarta.validation.constraints.NotNull @jakarta.validation.constraints.DecimalMin("0") @jakarta.validation.constraints.Digits(integer=8,fraction=4) java.math.BigDecimal custoUnitario) {}
+    @PutMapping("/insumos/{id}/custo") public void custo(@PathVariable long id,@Valid @RequestBody Custo c){if(repository.jdbc().update("UPDATE ingredientes SET custo_unitario=? WHERE id=?",c.custoUnitario(),id)==0)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);}
     @GetMapping("/usuarios") public List<Map<String,Object>> usuarios() { return repository.usuarios(); }
     @PostMapping("/usuarios") public void usuario(@Valid @RequestBody Usuario request) { service.usuario(request); }
     @GetMapping("/categorias") public List<Map<String,Object>> categorias() { return repository.categorias(); }

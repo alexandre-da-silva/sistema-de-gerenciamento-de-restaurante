@@ -17,11 +17,13 @@ class PedidoServiceTest {
  final ProdutoRepository produtos=mock(ProdutoRepository.class);
  final MesaRepository mesas=mock(MesaRepository.class);
  final RecursoService recursos=mock(RecursoService.class);
- final PedidoService service=new PedidoService(pedidos,usuarios,produtos,mesas,recursos);
+ final CatalogoOperacionalService catalogo=mock(CatalogoOperacionalService.class);
+ final ConsumoEstoqueService estoque=mock(ConsumoEstoqueService.class);
+ final PedidoService service=new PedidoService(pedidos,usuarios,produtos,mesas,recursos,catalogo,estoque);
  final Usuario cliente=new Usuario("Cliente","cliente@example.com","hash",null,PerfilUsuario.CLIENTE);
  final String reference="12345678-1234-1234-1234-123456789abc";
  PedidoRequest request(boolean fee){return new PedidoRequest(null,List.of(new ItemPedidoRequest(1L,2)),"Sem cebola",fee,reference);}
- @BeforeEach void setup(){when(usuarios.findByEmail(cliente.getEmail())).thenReturn(Optional.of(cliente));when(pedidos.save(any())).thenAnswer(a->a.getArgument(0));}
+ @BeforeEach void setup(){when(usuarios.findByEmail(cliente.getEmail())).thenReturn(Optional.of(cliente));org.springframework.test.util.ReflectionTestUtils.setField(cliente,"id",1L);when(pedidos.saveAndFlush(any())).thenAnswer(a->{Pedido p=a.getArgument(0);org.springframework.test.util.ReflectionTestUtils.setField(p,"id",10L);return p;});when(catalogo.escolher(any(),any())).thenAnswer(a->{Produto p=a.getArgument(0);return new CatalogoOperacionalService.Escolha(p.getPrecoVenda(),"","Cozinha",Map.of());});}
  @Test void priceAndOptionalFeeAreCalculatedFromCatalog(){
   Produto p=new Produto("Prato","Descrição",new BigDecimal("49.90"),null);
   p.apresentar(null,15,"Carne",true,new BigDecimal("34.90"));
@@ -41,7 +43,7 @@ class PedidoServiceTest {
   Pedido existing=new Pedido(cliente,null,null);existing.definirTotal(new BigDecimal("10.00"));
   when(pedidos.findByClienteEmailAndReferencia(cliente.getEmail(),reference)).thenReturn(Optional.of(existing));
   assertEquals(new BigDecimal("10.00"),service.criar(cliente.getEmail(),request(false)).total());
-  verify(pedidos,never()).save(any());verifyNoInteractions(produtos);
+  verify(pedidos,never()).saveAndFlush(any());verifyNoInteractions(produtos);
  }
  @Test void anotherCustomerCannotCancel(){
   when(pedidos.findById(1L)).thenReturn(Optional.of(new Pedido(cliente,null,null)));
@@ -54,7 +56,7 @@ class PedidoServiceTest {
   assertEquals(StatusPedido.EM_PREPARO,order.getStatus());
  }
  @Test void receivedOrderCanBeCancelled(){
-  Pedido order=new Pedido(cliente,null,null);when(pedidos.findById(1L)).thenReturn(Optional.of(order));
+  Pedido order=new Pedido(cliente,null,null);org.springframework.test.util.ReflectionTestUtils.setField(order,"id",1L);when(pedidos.findById(1L)).thenReturn(Optional.of(order));
   assertEquals(StatusPedido.CANCELADO,service.cancelarCliente(cliente.getEmail(),1L).status());
   assertTrue(order.getEtapas().containsKey("CANCELADO"));
  }

@@ -6,4 +6,4 @@ public record ProdutoRequest(@NotBlank @Size(max=140) String nome,
  Long categoriaId, Boolean ativo,
  @Pattern(regexp="^/media/[a-f0-9-]+\\.jpg$") @Size(max=255) String imagemUrl,
  @Min(1) @Max(240) Integer tempoPreparo, @Size(max=60) String tipo, Boolean destaque,
- @DecimalMin("0.01") @Digits(integer=10,fraction=2) BigDecimal precoPromocional) {}
+ @DecimalMin("0.01") @Digits(integer=10,fraction=2) BigDecimal precoPromocional, @jakarta.validation.Valid ProdutoDetalhes detalhes) {}

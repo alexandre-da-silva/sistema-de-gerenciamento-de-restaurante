@@ -40,6 +40,7 @@ async function renderLegacy() {
     page +
     '</h1><button id="create" class="action">Adicionar</button></div><p id="error" role="status"></p><section class="panel" id="content"></section></main>';
   $("exit").onclick = () => {
+    encerrarSessao();
     token = "";
     perfil = "";
     login();
@@ -170,7 +171,7 @@ async function renderLegacy() {
               (item.itens
                 ? " · " +
                   item.itens
-                    .map((i) => i.quantidade + "× " + i.produto)
+                    .map((i) => i.quantidade + "× " + i.produto + (i.setorProducao ? " [" + i.setorProducao + "]" : ""))
                     .join(", ")
                 : "");
             const next = {

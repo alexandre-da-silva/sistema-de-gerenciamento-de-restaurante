@@ -7,5 +7,5 @@ public record PedidoResponse(Long id,String cliente,Integer mesa,StatusPedido st
  String observacao,LocalDateTime criadoEm,List<Item> itens,BigDecimal taxaServico,
  LocalDateTime atualizadoEm,Map<String,LocalDateTime> etapas,Integer tempoEstimado) {
  public record Item(Long produtoId,String produto,Integer quantidade,BigDecimal precoUnitario,
- BigDecimal subtotal,String imagemUrl) {}
+ BigDecimal subtotal,String imagemUrl,String setorProducao) {}
 }

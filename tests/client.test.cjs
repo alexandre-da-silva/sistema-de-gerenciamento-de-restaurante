@@ -7,7 +7,7 @@ const esbuild=require('../frontend/node_modules/esbuild');
 const base=path.resolve(__dirname,'..');
 const products=[{id:1,nome:'Picanha Grelhada',descricao:'Com arroz e farofa',preco:59.90,precoPromocional:49.90,categoria:'Pratos Principais',tempoPreparo:15,ativo:true,destaque:true},{id:2,nome:'Café espresso',descricao:'Café fresco',preco:6.90,categoria:'Bebidas',tempoPreparo:5,ativo:true}];
 const wait=()=>new Promise(r=>setTimeout(r,40));
-async function setup(){
+async function setup(initialPage='Cardápio',catalog=products){
  const errors=[],writes=[];
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost/',runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc});const w=dom.window;
@@ -21,11 +21,11 @@ async function setup(){
  if(opt.method==='POST'){
   const body=JSON.parse(opt.body);writes.push({key,body});
   data={id:12,cliente:'Alexandre',status:'RECEBIDO',total:54.89,taxaServico:4.99,criadoEm:'2026-11-13T14:00:00',atualizadoEm:'2026-11-13T14:00:00',etapas:{RECEBIDO:'2026-11-13T14:00:00'},itens:[{produtoId:1,produto:'Picanha Grelhada',quantidade:1,precoUnitario:49.90,subtotal:49.90}],tempoEstimado:15};
- }else data=key==='publico/cardapio'?products:key==='cliente/perfil'?{nome:'Alexandre',email:'cliente@example.com',telefone:''}:key==='cliente/mesas'?[{id:1,numero:12}]:key.startsWith('publico/avaliacoes')?{itens:[],resumo:{total:0,media:0,positivas:0,neutras:0,negativas:0},distribuicao:[],totalFiltrado:0,destaque:[]}:[];
+ }else data=key==='publico/cardapio'?catalog:key==='publico/recomendacoes'?catalog.slice().sort((a,b)=>(b.vendas30Dias||0)-(a.vendas30Dias||0)):key==='cliente/perfil'?{nome:'Alexandre',email:'cliente@example.com',telefone:''}:key==='cliente/mesas'?[{id:1,numero:12}]:key.startsWith('publico/avaliacoes')?{itens:[],resumo:{total:0,media:0,positivas:0,neutras:0,negativas:0},distribuicao:[],totalFiltrado:0,destaque:[]}:[];
  return {ok:true,status:200,json:async()=>data};
  };
  w.eval(fs.readFileSync(path.join(base,'src/main/resources/static/client/client.js'),'utf8'));
- w.AstraClient.mount({token:'fixture',nome:'Alexandre',onLogout(){}});await wait();await wait();
+ w.AstraClient.mount({token:'fixture',nome:'Alexandre',initialPage,onNavigate(page){w.sessionStorage.setItem('page',page)},onLogout(){}});await wait();await wait();
  return {w,dom,writes,errors,close(){w.AstraClient.unmount();dom.window.close()}};
 }
 function click(w,selector){const el=w.document.querySelector(selector);assert.ok(el,selector);el.click();return wait()}
@@ -51,7 +51,7 @@ test('client adds, adjusts quantities and sends only IDs with a reference',async
  assert.ok(w.document.querySelector('dialog').open);
  button(w,'Confirmar e enviar para a cozinha').click();await wait();
  assert.equal(writes.length,1);assert.equal(writes[0].key,'cliente/pedidos');
- assert.deepEqual(writes[0].body.itens,[{produtoId:1,quantidade:1}]);
+ assert.deepEqual(writes[0].body.itens,[{adicionais:[],produtoId:1,quantidade:1}]);
  assert.equal(writes[0].body.taxaServico,true);assert.match(writes[0].body.referencia,/^[a-f0-9-]{36}$/);
  assert.equal('total' in writes[0].body,false);assert.equal(w.document.querySelector('.c-cart'),null);
  assert.deepEqual(errors,[]);
@@ -79,3 +79,13 @@ test('navigation opens orders, offers, reviews and profile with real empty state
  assert.deepEqual(errors,[]);
  }finally{ctx.close()}
 });
+
+test('home is a sales recommendation feed, not the full menu',async()=>{
+ const ctx=await setup('Início',[{...products[0],vendas30Dias:20,calor:1,popular:true},{...products[1],vendas30Dias:1,calor:.2,popular:false}]);
+ try{const {w}=ctx;assert.ok(w.document.querySelector('.c-home'));assert.equal(w.document.querySelector('.c-categories'),null);assert.ok(w.document.querySelector('.c-popularity.popular').textContent.includes('Popular'));assert.equal(w.document.querySelectorAll('.c-popularity:not(.popular) b').length,0);button(w,'Explorar cardápio').click();await wait();assert.ok(w.document.querySelector('.c-categories'));assert.equal(w.sessionStorage.getItem('page'),'Cardápio');}finally{ctx.close()}
+});
+test('configured options create distinct lines and preserve actual variant/extra prices',async()=>{
+ const meal={...products[0],precoPromocional:null,detalhes:{variacoes:[{id:'small',nome:'Individual',preco:30,fatorReceita:1},{id:'large',nome:'Para 2',preco:50,fatorReceita:2}],adicionais:[{id:'bacon',nome:'Bacon',preco:5}],permiteObservacoes:true}};
+ const ctx=await setup('Cardápio',[meal]);try{const {w}=ctx;await click(w,'.c-small');assert.ok(w.document.querySelector('dialog'));await click(w,'.c-options input[type=checkbox]');button(w,'Adicionar ao pedido').click();await wait();assert.ok(w.document.querySelector('.c-cart-item').textContent.includes('35,00'));await click(w,'.c-small');await click(w,'.c-options input[type=radio]:not(:checked)');button(w,'Adicionar ao pedido').click();await wait();assert.equal(w.document.querySelectorAll('.c-cart-item').length,2);button(w,'Confirmar Pedido').click();await wait();button(w,'Confirmar e enviar para a cozinha').click();await wait();assert.equal(ctx.writes[0].body.itens[0].variacaoId,'small');assert.deepEqual(ctx.writes[0].body.itens[0].adicionais,['bacon']);assert.equal(ctx.writes[0].body.itens[1].variacaoId,'large');assert.deepEqual(ctx.errors,[]);}finally{ctx.close()}
+});
+test('unavailable products cannot be added',async()=>{const ctx=await setup('Cardápio',[{...products[0],disponivelAgora:false}]);try{assert.ok(ctx.w.document.querySelector('.c-small').disabled);assert.ok(ctx.w.document.querySelector('.c-small').textContent.includes('Fora do horário'));}finally{ctx.close()}});

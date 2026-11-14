@@ -36,6 +36,10 @@ public class Produto {
         this.imagemUrl=imagem; this.tempoPreparo=tempo==null?20:tempo;
         this.tipo=tipo; this.destaque=destaque; this.precoPromocional=promocao;
     }
+    @Column(length=60,unique=true) private String sku;
+    @Column(name="detalhes_json",columnDefinition="LONGTEXT") private String detalhesJson;
+    public String getDetalhesJson(){return detalhesJson;}
+    public void definirDetalhes(String sku,String json){this.sku=sku;this.detalhesJson=json;}
     protected Produto() {}
     public Produto(String nome, String descricao, BigDecimal preco, Categoria categoria) {
         this.nome = nome; this.descricao = descricao; this.preco = preco;

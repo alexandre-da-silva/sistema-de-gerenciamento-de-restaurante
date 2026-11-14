@@ -11,6 +11,7 @@ public class AuthController {
     public AuthController(AuthService auth) { this.auth = auth; }
     @PostMapping("/registrar") public TokenResponse registrar(@Valid @RequestBody RegistroRequest request) { return auth.registrar(request); }
     @PostMapping("/login") public TokenResponse login(@Valid @RequestBody LoginRequest request) { return auth.login(request); }
+    @GetMapping("/sessao") public java.util.Map<String,String> sessao(Authentication a){return auth.sessao(a.getName());}
     @PutMapping("/senha") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void alterarSenha(@Valid @RequestBody AlterarSenhaRequest request, Authentication authentication) {
         auth.alterarSenha(authentication.getName(), request);

@@ -1,7 +1,31 @@
+function salvarSessao() {
+  try { sessionStorage.setItem('astrachefe:sessao:v1',JSON.stringify({token,nome:nomeUsuario,perfil,page})); } catch {}
+}
+function limparSessao() {
+  token=''; perfil=''; nomeUsuario=''; page='';
+  try { sessionStorage.removeItem('astrachefe:sessao:v1'); } catch {}
+  if(typeof pararAtualizacaoAdmin==='function') pararAtualizacaoAdmin();
+}
+async function restaurarSessao() {
+  let dados;
+  try { dados=JSON.parse(sessionStorage.getItem('astrachefe:sessao:v1')||'null'); } catch {}
+  if(!dados?.token || !['ADMIN','CLIENTE','COZINHA'].includes(dados.perfil)) { login(); return; }
+  token=dados.token; perfil=dados.perfil; nomeUsuario=dados.nome||'';
+  page=dados.page|| (perfil==='ADMIN'?'Dashboard':perfil==='COZINHA'?'Cozinha':'Início');
+  try {
+    const atual=await api('auth/me');
+    if(atual.perfil!==perfil)throw Error('Perfil atualizado; entre novamente.');
+    nomeUsuario=atual.nome;
+    salvarSessao();
+    render();
+  }catch { limparSessao(); login(); }
+}
 function iniciarSessao(response) {
   token = response.accessToken;
+  nomeUsuario = response.nome || "Administrador";
   perfil = response.perfil;
-  page = perfil === "COZINHA" ? "Cozinha" : "Cardápio";
+  page = perfil === "ADMIN" ? "Dashboard" : perfil === "COZINHA" ? "Cozinha" : "Início";
+  salvarSessao();
   render();
 }
 
@@ -10,7 +34,7 @@ function login() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Entrar</h1>
+            <h1>AstraChefe</h1>
             
             <form id="login">
                 <label><span class="sr-only">E-mail</span><input placeholder="E-mail" name="email" type="email" required maxlength="180" autocomplete="username"></label>
@@ -41,7 +65,7 @@ function cadastro() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Criar conta</h1>
+            <h1>Crie sua conta AstraChefe</h1>
             
             <form id="cadastro">
                 <label><span class="sr-only">Nome</span><input placeholder="Nome" name="nome" required maxlength="120" autocomplete="name"></label>

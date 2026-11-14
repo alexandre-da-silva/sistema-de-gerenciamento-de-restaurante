@@ -23,8 +23,9 @@ public class AdminGestaoController {
     @GetMapping("/mesas") public List<Map<String,Object>> mesas() { recursos.exigirHabilitado("MESAS_E_COMANDAS"); return repository.mesas(); }
     @PostMapping("/mesas") public void mesa(@Valid @RequestBody Mesa request) { recursos.exigirHabilitado("MESAS_E_COMANDAS"); repository.mesa(request.numero(),request.capacidade()); }
     @GetMapping("/estoque") public List<Map<String,Object>> estoque() { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); return repository.estoque(); }
-    @PostMapping("/estoque") public void ingrediente(@Valid @RequestBody Ingrediente request) { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); repository.ingrediente(request.nome(),request.unidade()); }
+    @PostMapping("/estoque") public void ingrediente(@Valid @RequestBody Ingrediente request) { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); repository.ingrediente(request.nome(),request.unidade(),request.custoUnitario()); }
     @PostMapping("/estoque/{id}/movimentos") public void movimento(@PathVariable long id, @Valid @RequestBody Movimento request, Principal principal) { service.movimentar(id,request,principal.getName()); }
+    @PutMapping("/estoque/{id}/custo") public void custo(@PathVariable long id,@Valid @RequestBody Custo request) {service.atualizarCusto(id,request);}
     @GetMapping("/pedidos") public List<Map<String,Object>> pedidos() { return repository.pedidos(); }
     @PostMapping("/pedidos/{id}/pagamentos") public void pagamento(@PathVariable long id,@Valid @RequestBody Pagamento request) { service.pagar(id,request); }
     @GetMapping("/relatorios/vendas") public List<Map<String,Object>> vendas() { recursos.exigirHabilitado("RELATORIOS"); return repository.vendas(); }

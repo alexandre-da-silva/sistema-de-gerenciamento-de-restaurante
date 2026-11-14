@@ -1,3 +1,5 @@
+> **Atualização AstraChefe V3 (14/11/2026)**: Home independente com recomendações em alta, sessão restaurada após F5, atualização de dados a cada 10 s, cadastro de produto expandido e ficha técnica com baixa/estorno de estoque quando o módulo estiver habilitado. Veja [docs/ALTERACOES_V3.md](docs/ALTERACOES_V3.md) para detalhes, testes, limitações e aplicação da migração Flyway. Os trechos abaixo documentam a implementação histórica e podem citar funcionalidades antes pendentes.
+
 # Backend — Sistema de Gerenciamento de Restaurantes
 
 Backend inicial do projeto acadêmico UC HUB, desenvolvido com Java 21, Spring Boot 3.5.16 e MySQL.
@@ -113,3 +115,11 @@ As movimentações de estoque recebem `quantidade` positiva para entrada e negat
 - Ficha técnica, baixa automática, estornos, pagamentos parciais e gestão completa de usuários/mesas/categorias precisam de implementação.
 - Criptografia de todos os dados em repouso, backup automático, auditoria e rate limiting precisam de configuração/implementação adicional.
 - O MySQL do computador do usuário será inicializado quando a aplicação for executada nesse ambiente.
+
+## Painéis AstraChefe
+
+O painel ADMIN foi redesenhado conforme a referência visual fornecida, com dashboard,
+pedidos, mesas, cardápio, cozinha, estoque, clientes, relatórios, financeiro e configurações.
+Consulte [docs/PAINEL_RESTOERP.md](docs/PAINEL_RESTOERP.md) para execução, novos endpoints e limites da validação.
+
+O cliente agora possui cardápio, carrinho, acompanhamento, histórico, promoções, avaliações e perfil. Veja [docs/ASTRACHEFE.md](docs/ASTRACHEFE.md).

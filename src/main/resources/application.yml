@@ -53,3 +53,7 @@ logging:
   level:
     org.springframework.security: INFO
     org.hibernate.SQL: WARN
+
+# Limites de upload de imagens; os arquivos ficam fora do código-fonte.
+spring.servlet.multipart.max-file-size: 5MB
+spring.servlet.multipart.max-request-size: 6MB

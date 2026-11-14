@@ -1,6 +1,9 @@
 package br.com.uchub.restaurante.controller;
 import br.com.uchub.restaurante.dto.*;
 import br.com.uchub.restaurante.service.AuthService;
+import br.com.uchub.restaurante.repository.UsuarioRepository;
+import org.springframework.http.ResponseEntity;
+import java.util.Map;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
@@ -8,7 +11,13 @@ import org.springframework.http.HttpStatus;
 @RestController @RequestMapping("/api/v1/auth")
 public class AuthController {
     private final AuthService auth;
-    public AuthController(AuthService auth) { this.auth = auth; }
+    private final UsuarioRepository usuarios;
+    public AuthController(AuthService auth,UsuarioRepository usuarios) { this.auth = auth;this.usuarios=usuarios; }
+    @GetMapping("/me") public Map<String,String> me(Authentication authentication){
+        var u=usuarios.findByEmail(authentication.getName()).filter(x->x.isAtivo())
+          .orElseThrow(()->new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED,"Conta inativa."));
+        return Map.of("nome",u.getNome(),"email",u.getEmail(),"perfil",u.getPerfil().name());
+    }
     @PostMapping("/registrar") public TokenResponse registrar(@Valid @RequestBody RegistroRequest request) { return auth.registrar(request); }
     @PostMapping("/login") public TokenResponse login(@Valid @RequestBody LoginRequest request) { return auth.login(request); }
     @PutMapping("/senha") @ResponseStatus(HttpStatus.NO_CONTENT)

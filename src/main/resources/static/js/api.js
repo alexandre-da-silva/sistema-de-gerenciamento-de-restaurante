@@ -11,8 +11,8 @@ async function api(path, method = "GET", body) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     if (response.status === 401 && !publicAuth) {
-      token = "";
-      perfil = "";
+      if (typeof limparSessao === "function") limparSessao();
+      else { token = ""; perfil = ""; }
       login();
       $("error").textContent = "Sua sessão expirou. Entre novamente.";
     }

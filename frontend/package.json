@@ -1,0 +1,31 @@
+{
+  "name": "astrachefe-cliente",
+  "version": "1.0.0",
+  "description": "Painel do cliente AstraChefe integrado ao Spring Boot",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --noEmit && node build.mjs && tailwindcss -i src/styles.css -o ../src/main/resources/static/client/client.css --minify",
+    "check": "tsc --noEmit",
+    "test": "node --test ../tests/*.test.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "lucide-react": "1.72.0",
+    "motion": "14.13.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "jsdom": "^31.0.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.0.2"
+  },
+  "private": true
+}

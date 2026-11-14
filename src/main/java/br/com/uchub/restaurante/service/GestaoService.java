@@ -36,6 +36,11 @@ public class GestaoService {
             id,request.quantidade().signum()>0 ? "ENTRADA":"SAIDA",request.quantidade().abs(),request.motivo(),usuario);
     }
     @Transactional
+    public void atualizarCusto(long id,Custo request){
+        int linhas=repository.jdbc().update("UPDATE ingredientes SET custo_unitario=? WHERE id=?",request.custoUnitario(),id);
+        if(linhas==0)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Ingrediente não encontrado.");
+    }
+    @Transactional
     public void pagar(long id, Pagamento request) {
         recursos.exigirHabilitado("CAIXA_E_PAGAMENTOS");
         var jdbc=repository.jdbc();

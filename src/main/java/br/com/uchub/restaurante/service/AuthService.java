@@ -57,6 +57,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A senha deve ter no máximo 72 bytes em UTF-8.");
         }
     }
+    public java.util.Map<String,String> sessao(String email){var u=usuarios.findByEmail(email).filter(Usuario::isAtivo).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED));return java.util.Map.of("nome",u.getNome(),"email",u.getEmail(),"perfil",u.getPerfil().name());}
     private TokenResponse token(Usuario usuario) {
         return new TokenResponse(jwtService.gerarToken(usuario), "Bearer", jwtService.getExpirationSeconds(),
                 usuario.getNome(), usuario.getEmail(), usuario.getPerfil().name());

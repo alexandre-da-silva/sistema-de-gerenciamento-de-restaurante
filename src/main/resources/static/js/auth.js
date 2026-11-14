@@ -1,8 +1,9 @@
 function iniciarSessao(response) {
   token = response.accessToken;
+  nomeUsuario = response.nome || "Administrador";
   perfil = response.perfil;
-  page = perfil === "COZINHA" ? "Cozinha" : "Cardápio";
-  render();
+  page = perfil === "ADMIN" ? "Dashboard" : perfil === "COZINHA" ? "Cozinha" : "Início";
+  salvarSessao();salvarPagina();render();
 }
 
 function login() {
@@ -10,7 +11,7 @@ function login() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Entrar</h1>
+            <h1>AstraChefe</h1>
             
             <form id="login">
                 <label><span class="sr-only">E-mail</span><input placeholder="E-mail" name="email" type="email" required maxlength="180" autocomplete="username"></label>
@@ -41,7 +42,7 @@ function cadastro() {
   $("root").innerHTML = `
         <div class="auth-page"><section class="login">
             
-            <h1>Criar conta</h1>
+            <h1>Crie sua conta AstraChefe</h1>
             
             <form id="cadastro">
                 <label><span class="sr-only">Nome</span><input placeholder="Nome" name="nome" required maxlength="120" autocomplete="name"></label>
@@ -88,4 +89,20 @@ function cadastro() {
       button.disabled = false;
     }
   };
+}
+
+async function restaurarSessao(){
+ let saved;try{saved=JSON.parse(sessionStore.get('sessao')||'null')}catch{}
+ if(!saved?.token)return login();
+ token=saved.token;perfil=saved.perfil;nomeUsuario=saved.nome;
+ $('root').innerHTML='<div class="auth-page"><section class="login"><h1>AstraChefe</h1><p role="status">Atualizando sua sessão…</p></section></div>';
+ try{
+  const user=await api('auth/sessao');perfil=user.perfil;nomeUsuario=user.nome;
+  let previous;try{previous=JSON.parse(sessionStore.get('pagina')||'null')}catch{}
+  page=previous?.perfil===perfil?previous.page:perfil==='ADMIN'?'Dashboard':perfil==='COZINHA'?'Cozinha':'Início';
+  if(perfil==='ADMIN'&&!adminMenus.some(([p])=>p===page))page='Dashboard';
+  salvarSessao();render();
+ }catch(e){
+  if(token){$('root').innerHTML='<div class="auth-page"><section class="login"><h1>AstraChefe</h1><p id="restore-error" role="alert"></p><button id="restore-retry" class="action">Tentar novamente</button></section></div>';$('restore-error').textContent='Não foi possível atualizar a sessão. Verifique a conexão.';$('restore-retry').onclick=restaurarSessao;}
+ }
 }

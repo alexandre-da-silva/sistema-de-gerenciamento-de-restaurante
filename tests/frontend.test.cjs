@@ -7,8 +7,9 @@ function setup(response, page='Pedidos') {
  for(const id of ['root','exit','refresh','create','error','content','modal']) elements[id]={};
  const ctx={token:'test-token',perfil:'ADMIN',page,esc:String,$:id=>elements[id]||null,document:{querySelectorAll:()=>[]},login:()=>{delete elements.content;elements.error={}},fetch:async()=>response};
  vm.createContext(ctx);
- for(const file of ['api.js','app.js']) vm.runInContext(fs.readFileSync('src/main/resources/static/js/'+file,'utf8').replace(/login\(\);\s*$/,''),ctx);
- return {ctx,elements,render:()=>vm.runInContext('render()',ctx)};
+ for(const file of ['api.js','legacy.js']) vm.runInContext(fs.readFileSync('src/main/resources/static/js/'+file,'utf8').replace(/login\(\);\s*$/,''),ctx);
+ vm.runInContext('function render(){return renderLegacy();}',ctx);
+ return {ctx,elements,render:()=>vm.runInContext('renderLegacy()',ctx)};
 }
 test('401 returns to login without accessing removed content',async()=>{
  const s=setup({ok:false,status:401,json:async()=>null});

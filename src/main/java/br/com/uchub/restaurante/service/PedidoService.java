@@ -17,35 +17,49 @@ public class PedidoService {
     private final ProdutoRepository produtos;
     private final MesaRepository mesas;
     private final RecursoService recursos;
+    private final CatalogoOperacionalService catalogo;
+    private final ConsumoEstoqueService estoque;
     public PedidoService(PedidoRepository pedidos, UsuarioRepository usuarios, ProdutoRepository produtos,
-                         MesaRepository mesas, RecursoService recursos) {
+                         MesaRepository mesas, RecursoService recursos, CatalogoOperacionalService catalogo, ConsumoEstoqueService estoque) {
         this.pedidos = pedidos; this.usuarios = usuarios; this.produtos = produtos;
-        this.mesas = mesas; this.recursos = recursos;
+        this.mesas = mesas; this.recursos = recursos;this.catalogo=catalogo;this.estoque=estoque;
     }
     @Transactional
     public PedidoResponse criar(String emailCliente, PedidoRequest request) {
         recursos.exigirHabilitado("PEDIDOS_ONLINE");
         Usuario cliente = usuarios.findByEmail(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."));
+        if(cliente.getPerfil()!=PerfilUsuario.CLIENTE || !cliente.isAtivo())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Somente clientes podem criar pedidos.");
+        var anterior=pedidos.findByClienteEmailAndReferencia(emailCliente,request.referencia());
+        if(anterior.isPresent())return toResponse(anterior.get());
         if (request.mesaId() != null) recursos.exigirHabilitado("MESAS_E_COMANDAS");
         Mesa mesa = request.mesaId() == null ? null : mesas.findById(request.mesaId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mesa não encontrada."));
         if (mesa != null && !"LIVRE".equals(mesa.getStatus())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa não está disponível.");
         Pedido pedido = new Pedido(cliente, mesa, request.observacao());
         BigDecimal total = BigDecimal.ZERO;
+        java.util.Map<Long,BigDecimal> consumo=new java.util.TreeMap<>();
         for (ItemPedidoRequest itemRequest : request.itens()) {
             if (itemRequest.quantidade() == null || itemRequest.quantidade() < 1 || itemRequest.quantidade() > 99)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantidade deve ficar entre 1 e 99.");
             Produto produto = produtos.findById(itemRequest.produtoId())
                     .filter(Produto::isAtivo)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Produto inexistente ou indisponível."));
+            var escolha=catalogo.escolher(produto,itemRequest);
             ItemPedido item = new ItemPedido(produto, itemRequest.quantidade());
+            item.personalizar(escolha.preco(),escolha.resumo(),escolha.setor());
+            escolha.consumo().forEach((id,q)->consumo.merge(id,q.multiply(BigDecimal.valueOf(itemRequest.quantidade())),BigDecimal::add));
             pedido.adicionarItem(item);
             total = total.add(item.getSubtotal());
         }
-        pedido.definirTotal(total);
+        BigDecimal taxa=Boolean.TRUE.equals(request.taxaServico()) ? total.multiply(new BigDecimal("0.10")).setScale(2,java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        pedido.definirCheckout(taxa,request.referencia());
+        pedido.definirTotal(total.add(taxa));
         if (mesa != null) mesa.setStatus("OCUPADA");
-        return toResponse(pedidos.save(pedido));
+        pedidos.saveAndFlush(pedido);
+        estoque.baixar(pedido.getId(),cliente.getId(),consumo);
+        return toResponse(pedido);
     }
     @Transactional(readOnly = true)
     public List<PedidoResponse> meusPedidos(String email) {
@@ -71,17 +85,30 @@ public class PedidoService {
         };
         if (!permitido) throw new ResponseStatusException(HttpStatus.CONFLICT, "Transição de status não permitida.");
         pedido.atualizarStatus(novoStatus);
+        if(novoStatus==StatusPedido.CANCELADO && atual==StatusPedido.RECEBIDO)estoque.devolver(pedido.getId(),pedido.getCliente().getId());
         if (pedido.getMesa() != null && (novoStatus == StatusPedido.CANCELADO)) {
             pedido.getMesa().setStatus("LIVRE");
         }
         return toResponse(pedido);
     }
+    @Transactional
+    public PedidoResponse cancelarCliente(String email, Long id) {
+        Pedido pedido=pedidos.findById(id).filter(p -> p.getCliente().getEmail().equals(email))
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Pedido não encontrado."));
+        if(pedido.getStatus()!=StatusPedido.RECEBIDO)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Só é possível cancelar antes de iniciar o preparo.");
+        pedido.atualizarStatus(StatusPedido.CANCELADO);
+        estoque.devolver(pedido.getId(),pedido.getCliente().getId());
+        if(pedido.getMesa()!=null)pedido.getMesa().setStatus("LIVRE");
+        return toResponse(pedido);
+    }
     private PedidoResponse toResponse(Pedido p) {
         List<PedidoResponse.Item> itens = p.getItens().stream().map(i -> new PedidoResponse.Item(
-                i.getProduto().getId(), i.getProduto().getNome(), i.getQuantidade(),
-                i.getPrecoUnitario(), i.getSubtotal())).toList();
+                i.getProduto().getId(), i.getProduto().getNome()+(i.getConfiguracao()==null||i.getConfiguracao().isBlank()?"":" — "+i.getConfiguracao()), i.getQuantidade(),
+                i.getPrecoUnitario(), i.getSubtotal(),i.getProduto().getImagemUrl(),i.getSetorProducao())).toList();
         return new PedidoResponse(p.getId(), p.getCliente().getNome(),
                 p.getMesa() == null ? null : p.getMesa().getNumero(), p.getStatus(),
-                p.getTotal(), p.getObservacao(), p.getCriadoEm(), itens);
+                p.getTotal(), p.getObservacao(), p.getCriadoEm(), itens,p.getTaxaServico(),p.getAtualizadoEm(),p.getEtapas(),
+                p.getItens().stream().map(i -> i.getProduto().getTempoPreparo()==null?20:i.getProduto().getTempoPreparo()).max(Integer::compare).orElse(20));
     }
 }

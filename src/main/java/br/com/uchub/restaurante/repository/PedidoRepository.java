@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
+    Optional<Pedido> findByClienteEmailAndReferencia(String email,String referencia);
     @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Pedido> findById(Long id);

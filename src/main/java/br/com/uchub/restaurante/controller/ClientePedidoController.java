@@ -13,5 +13,6 @@ public class ClientePedidoController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED) public PedidoResponse criar(@Valid @RequestBody PedidoRequest request, Authentication auth) {
         return pedidos.criar(auth.getName(), request);
     }
+    @PatchMapping("/{id}/cancelar") public PedidoResponse cancelar(@PathVariable Long id, Authentication auth) { return pedidos.cancelarCliente(auth.getName(),id); }
     @GetMapping public List<PedidoResponse> meusPedidos(Authentication auth) { return pedidos.meusPedidos(auth.getName()); }
 }

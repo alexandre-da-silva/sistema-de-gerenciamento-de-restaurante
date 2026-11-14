@@ -18,10 +18,15 @@ public class ItemPedido {
     private BigDecimal precoUnitario;
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
+    @Column(length=4000) private String configuracao;
+    @Column(name="setor_producao",length=60) private String setorProducao="Cozinha";
+    public String getConfiguracao(){return configuracao;}
+    public String getSetorProducao(){return setorProducao;}
+    public void personalizar(BigDecimal preco,String configuracao,String setor){this.precoUnitario=preco;this.subtotal=preco.multiply(BigDecimal.valueOf(quantidade));this.configuracao=configuracao;this.setorProducao=setor;}
     protected ItemPedido() {}
     public ItemPedido(Produto produto, Integer quantidade) {
         this.produto = produto; this.quantidade = quantidade;
-        this.precoUnitario = produto.getPreco();
+        this.precoUnitario = produto.getPrecoVenda();
         this.subtotal = precoUnitario.multiply(BigDecimal.valueOf(quantidade));
     }
     void setPedido(Pedido pedido) { this.pedido = pedido; }

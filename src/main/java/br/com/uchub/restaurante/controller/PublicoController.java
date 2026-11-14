@@ -7,5 +7,6 @@ import java.util.List;
 public class PublicoController {
     private final ProdutoService produtos;
     public PublicoController(ProdutoService produtos) { this.produtos = produtos; }
+    @GetMapping("/recomendacoes") public List<ProdutoResponse> recomendacoes(){return produtos.recomendacoes();}
     @GetMapping("/cardapio") public List<ProdutoResponse> cardapio() { return produtos.listarPublicos(); }
 }

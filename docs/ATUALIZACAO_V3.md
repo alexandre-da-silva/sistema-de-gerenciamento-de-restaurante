@@ -59,7 +59,7 @@ Os campos fiscais são apenas cadastrais. Não foi ativada emissão de nota nem 
 
 - TypeScript/esbuild/Tailwind: build aprovado.
 - 21 testes Node: interface, carrinho, café, esteira, Home independente, popularidade visual, variações/adicionais, disponibilidade, restauração de sessão, logout, erro de rede e formulário/custos.
-- Maven/Java 21: compilação e suíte aprovadas no GitHub Actions, com MySQL isolado. A suíte cobre regras de popularidade, disponibilidade noturna, personalizações e permissões/cancelamento.
+- Maven/Java 21: compilação e 19 testes aprovados no GitHub Actions, com MySQL isolado. A suíte cobre regras de popularidade, disponibilidade noturna, personalizações e permissões/cancelamento.
 - Integração MySQL aprovada: `tests/api-integration.py` valida migrações, preços, receitas, idempotência, cancelamento, ranking e concorrência de estoque contra um banco isolado. Não execute esse roteiro contra seu banco de produção.
-- `.github/workflows/validate.yml` prepara Java 21, Node 22 e MySQL isolado para executar essas verificações no PR. A primeira execução passou em 14/11/2026 (run 43627630536). A execução Maven local não conseguiu resolver as dependências por restrição de rede; a validação foi feita pelo CI.
-- Testes com DOM simulado não substituem inspeção visual real. A validação visual de desktop/celular ainda precisa ser feita em navegador funcional.
+- `.github/workflows/validate.yml` prepara Java 21, Node 22 e MySQL isolado para executar essas verificações no PR. As execuções de Java/MySQL e navegador passaram em 14/11/2026 (runs 43627630536 e 43628003057). A execução Maven local não conseguiu resolver as dependências por restrição de rede; a validação foi feita pelo CI.
+- Chromium real no CI: F5 preservando sessão/tela no cliente e ADMIN, logout persistido, Home distinta, largura móvel sem rolagem horizontal e abertura do formulário passaram em `tests/reload-browser.cjs`. A comparação visual detalhada com as imagens continua manual.

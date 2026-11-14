@@ -39,7 +39,7 @@ public class CatalogoOperacionalService {
   boolean allowed=d.lista(d.diasSemana()).isEmpty()||d.diasSemana().contains(serviceDay);
   return allowed&&(overnight?(!t.isBefore(start)||t.isBefore(end)):(!t.isBefore(start)&&t.isBefore(end)));
  }
- public Map<Long,Long> vendas(){Map<Long,Long> m=new HashMap<>();jdbc.query("SELECT i.produto_id,SUM(i.quantidade) unidades FROM itens_pedido i JOIN pedidos p ON p.id=i.pedido_id WHERE p.status='ENTREGUE' AND EXISTS(SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO' AND pg.criado_em>=?) GROUP BY i.produto_id",rs->{m.put(rs.getLong(1),rs.getLong(2));},LocalDateTime.now(ZoneId.of("America/Bahia")).minusDays(30));return m;}
+ public Map<Long,Long> vendas(){Map<Long,Long> m=new HashMap<>();jdbc.query("SELECT i.produto_id,SUM(i.quantidade) unidades FROM itens_pedido i JOIN pedidos p ON p.id=i.pedido_id WHERE p.status='ENTREGUE' AND EXISTS(SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO' AND pg.criado_em>=CURRENT_TIMESTAMP - INTERVAL 30 DAY) GROUP BY i.produto_id",rs->{m.put(rs.getLong(1),rs.getLong(2));});return m;}
  public static double calor(long count,long max){return max==0?0:Math.log1p(count)/Math.log1p(max);}
  public static boolean popular(long count,long max){return count>=5&&count>=Math.ceil(max*0.35);}
  public record Escolha(BigDecimal preco,String resumo,String setor,Map<Long,BigDecimal> consumo) {}

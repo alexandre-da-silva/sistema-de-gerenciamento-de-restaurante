@@ -1,3 +1,5 @@
+> Atualizado pela [V3](ATUALIZACAO_V3.md): Home independente, sessão, ficha técnica e estoque automático. As regras novas estão nesse documento.
+
 # AstraChefe — painel do cliente
 
 ## Funcionalidades
@@ -53,4 +55,4 @@ Criar pedido recebe `mesaId`, `itens` com produtoId/quantidade, `observacao`, `t
 - 15 testes Node aprovados: regressões administrativas, carrinho, promoção/taxa, payload do pedido, busca café, esteira e navegação. React usa DOM e API simulados: esses testes não comprovam layout visual nem integração MySQL.
 - Testes Java adicionados para autorização, preços, repetição e cancelamento por dono/etapa. Maven não conseguiu baixar dependências neste ambiente; execute a suíte no ambiente de desenvolvimento.
 - Chromium não iniciou aqui. Inspeção visual desktop/celular e fluxo completo com MySQL permanecem pendentes. Não se afirma equivalência pixel a pixel com as imagens.
-- Pagamento continua no restaurante, com registro manual do recebimento pelo administrador. Gateway de pagamento, emissão fiscal, baixa automática de estoque e estornos não fazem parte desta entrega.
+- Pagamento continua no restaurante, com registro manual do recebimento pelo administrador. Gateway de pagamento, emissão fiscal e estornos financeiros continuam pendentes. A baixa automática de estoque foi adicionada na V3.

@@ -22,7 +22,7 @@ const stock=[{id:1,nome:'Arroz',unidade_medida:'kg',quantidade_atual:1,quantidad
   if(endpoint==='auth/login')result={accessToken:'test-admin-token',perfil:'ADMIN',nome:'Carlos Mendes'};
   else if(req.method()!=='GET'){writes.push({endpoint,method:req.method(),body:req.postDataJSON()});result={};}
   else if(endpoint==='admin/dashboard')result=empty?{...summary,pedidosHoje:0,pedidosOntem:0,faturamento:0,faturamentoOntem:0,mesasTotal:0,mesasOcupadas:0,estoqueBaixo:0,vendasPorHora:[],maisVendidos:[]}:summary;
-  else result=({'admin/pedidos/detalhes':orders,'admin/mesas':tables,'admin/produtos':products,'admin/clientes':clients,'admin/categorias':[{id:1,nome:'Pratos principais'}],'admin/estoque':stock,'admin/relatorios/vendas':[{dia:date,total:4320.5,pagamentos:20}],'admin/recursos':features})[endpoint]||[];
+  else result=({'admin/pedidos/detalhes':orders,'admin/mesas':tables,'admin/produtos':products,'admin/clientes':clients,'admin/categorias':[{id:1,nome:'Pratos principais'}],'admin/insumos':stock,'admin/estoque':stock,'admin/relatorios/vendas':[{dia:date,total:4320.5,pagamentos:20}],'admin/recursos':features})[endpoint]||[];
   if(empty&&Array.isArray(result))result=[];
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
  });

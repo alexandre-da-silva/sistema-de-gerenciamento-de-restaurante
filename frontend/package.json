@@ -24,6 +24,7 @@
     "@types/react-dom": "19.3.0",
     "esbuild": "0.28.2",
     "jsdom": "^31.0.1",
+    "playwright": "^1.65.1",
     "tailwindcss": "4.3.5",
     "typescript": "7.0.2"
   },

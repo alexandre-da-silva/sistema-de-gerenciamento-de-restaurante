@@ -1,3 +1,5 @@
+> Veja a [atualização V3](ATUALIZACAO_V3.md) para Home, sessão, cadastro e estoque.
+
 # Painel administrativo AstraChefe
 
 Interface administrativa refeita com base na referência visual fornecida: menu vinho,
@@ -46,7 +48,7 @@ mas inclui pedidos ainda não pagos. Datas seguem a convenção de DATETIME já 
 
 ## Limites preservados
 
-Não foram implementados gateway de cobrança, emissão fiscal, baixa automática de estoque,
+Não foram implementados gateway de cobrança, emissão fiscal,
 estorno, pagamento parcial ou reservas de mesa. Produtos sem foto usam uma imagem neutra.
 A decoração lateral foi recortada da referência fornecida pelo usuário.
 O cliente usa o novo painel React; o perfil COZINHA permanece no fluxo legado.

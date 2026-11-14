@@ -85,7 +85,7 @@ public class PedidoService {
         };
         if (!permitido) throw new ResponseStatusException(HttpStatus.CONFLICT, "Transição de status não permitida.");
         pedido.atualizarStatus(novoStatus);
-        if(novoStatus==StatusPedido.CANCELADO)estoque.devolver(pedido.getId(),pedido.getCliente().getId());
+        if(novoStatus==StatusPedido.CANCELADO && atual==StatusPedido.RECEBIDO)estoque.devolver(pedido.getId(),pedido.getCliente().getId());
         if (pedido.getMesa() != null && (novoStatus == StatusPedido.CANCELADO)) {
             pedido.getMesa().setStatus("LIVRE");
         }

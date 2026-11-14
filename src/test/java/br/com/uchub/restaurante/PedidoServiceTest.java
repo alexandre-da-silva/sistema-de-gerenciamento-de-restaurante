@@ -55,6 +55,12 @@ class PedidoServiceTest {
   assertEquals(409,assertThrows(ResponseStatusException.class,()->service.cancelarCliente(cliente.getEmail(),1L)).getStatusCode().value());
   assertEquals(StatusPedido.EM_PREPARO,order.getStatus());
  }
+ @Test void cancellingAfterPreparationDoesNotReturnUsedIngredients(){
+  Pedido order=new Pedido(cliente,null,null);org.springframework.test.util.ReflectionTestUtils.setField(order,"id",1L);order.atualizarStatus(StatusPedido.EM_PREPARO);
+  when(pedidos.findById(1L)).thenReturn(Optional.of(order));
+  assertEquals(StatusPedido.CANCELADO,service.alterarStatus(1L,StatusPedido.CANCELADO).status());
+  verifyNoInteractions(estoque);
+ }
  @Test void receivedOrderCanBeCancelled(){
   Pedido order=new Pedido(cliente,null,null);org.springframework.test.util.ReflectionTestUtils.setField(order,"id",1L);when(pedidos.findById(1L)).thenReturn(Optional.of(order));
   assertEquals(StatusPedido.CANCELADO,service.cancelarCliente(cliente.getEmail(),1L).status());

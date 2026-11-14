@@ -35,6 +35,8 @@ jobs:
         working-directory: frontend
       - run: node --test tests/*.test.cjs
       - run: mvn -B package
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
       - name: MySQL migrations and API integration
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/astra_integration?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Bahia
@@ -54,3 +56,4 @@ jobs:
           done
           if [ "$ready" != 1 ]; then cat /tmp/astrachefe.log; exit 1; fi
           python3 tests/api-integration.py
+          node tests/reload-browser.cjs

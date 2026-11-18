@@ -20,6 +20,8 @@ public class Usuario {
     private PerfilUsuario perfil;
     @Column(nullable = false)
     private boolean ativo = true;
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion = 0;
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
@@ -37,6 +39,13 @@ public class Usuario {
     public PerfilUsuario getPerfil() { return perfil; }
     public boolean isAtivo() { return ativo; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
-    public void setAtivo(boolean ativo) { this.ativo = ativo; }
-    public void alterarSenhaHash(String senhaHash) { this.senhaHash = senhaHash; }
+    public long getTokenVersion() { return tokenVersion; }
+    public void revogarSessoes() { tokenVersion++; }
+    public void setAtivo(boolean ativo) {
+        if (this.ativo != ativo) { this.ativo = ativo; revogarSessoes(); }
+    }
+    public void setPerfil(PerfilUsuario perfil) {
+        if (perfil != null && this.perfil != perfil) { this.perfil = perfil; revogarSessoes(); }
+    }
+    public void alterarSenhaHash(String senhaHash) { this.senhaHash = senhaHash; revogarSessoes(); }
 }

@@ -40,6 +40,8 @@ public class ProdutoService {
    item.put("sku",p.getSku());item.put("ncm",p.getNcm());item.put("cfop",p.getCfop());
    item.put("cstCsosn",p.getCstCsosn());item.put("aliquotaIcms",p.getAliquotaIcms());
    item.put("fichaTecnica",detalhes.ficha(p.getId()));
+   item.put("variacoes",detalhes.opcoesComInsumos(p.getId(),true));
+   item.put("adicionais",detalhes.opcoesComInsumos(p.getId(),false));
    BigDecimal custo=detalhes.custo(p.getId()),venda=p.getPrecoVenda();
    item.put("custoPrato",custo);item.put("margemLucro",venda.subtract(custo));
    item.put("percentualMargem",venda.signum()>0?venda.subtract(custo).multiply(new BigDecimal("100")).divide(venda,2,java.math.RoundingMode.HALF_UP):BigDecimal.ZERO);
@@ -95,7 +97,7 @@ public class ProdutoService {
    if(!ids.add(f.ingredienteId()))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Ingrediente duplicado na ficha técnica.");
   }
   if(r.disponibilidade()!=null)for(var d:r.disponibilidade())
-   if(!d.horaInicio().isBefore(d.horaFim()))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"O horário final deve ser maior que o inicial.");
+   if(d.horaInicio().equals(d.horaFim()))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Informe um intervalo de horário não vazio.");
  }
  private void configurar(Produto p,ProdutoRequest r){
   p.apresentar(r.imagemUrl(),r.tempoPreparo(),r.tipo(),Boolean.TRUE.equals(r.destaque()),r.precoPromocional());
@@ -117,7 +119,13 @@ public class ProdutoService {
  public static boolean disponivel(List<ProdutoResponse.Horario> horarios){
   if(horarios.isEmpty())return true;
   ZonedDateTime agora=ZonedDateTime.now(FUSO);
-  return horarios.stream().anyMatch(h->h.diaSemana()==agora.getDayOfWeek().getValue()
-   && !agora.toLocalTime().isBefore(h.horaInicio()) && agora.toLocalTime().isBefore(h.horaFim()));
+  int hoje=agora.getDayOfWeek().getValue(), ontem=hoje==1?7:hoje-1;
+  LocalTime hora=agora.toLocalTime();
+  return horarios.stream().anyMatch(h->{
+   if(h.horaInicio().isBefore(h.horaFim()))
+    return h.diaSemana()==hoje && !hora.isBefore(h.horaInicio()) && hora.isBefore(h.horaFim());
+   return (h.diaSemana()==hoje && !hora.isBefore(h.horaInicio()))
+     || (h.diaSemana()==ontem && hora.isBefore(h.horaFim()));
+  });
  }
 }

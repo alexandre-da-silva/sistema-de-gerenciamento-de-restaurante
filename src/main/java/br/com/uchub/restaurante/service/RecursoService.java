@@ -13,6 +13,9 @@ import java.util.List;
 public class RecursoService {
     private final RecursoSistemaRepository repository;
     public RecursoService(RecursoSistemaRepository repository) { this.repository = repository; }
+    public boolean habilitado(String codigo) {
+        return repository.findByCodigo(codigo).map(RecursoSistema::isHabilitado).orElse(false);
+    }
     public void exigirHabilitado(String codigo) {
         RecursoSistema recurso = repository.findByCodigo(codigo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Recurso não configurado."));

@@ -1,3 +1,7 @@
+> **Atualização de 15/11/2026:** veja [correções e validação](docs/CORRECOES_REVISAO_2026-11-15.md). O pacote não inclui `.env`: configure-o localmente a partir de `.env.example`.
+
+> **Versão revisada AstraChefe V3 (14/11/2026):** consulte [a auditoria das correções e limitações](docs/AUDITORIA_CORRECOES_2026-11-14.md). O código recebeu alterações incrementais de segurança, checkout, estoque e carrinho. **Não há certificação de compilação backend, MySQL ou homologação neste pacote.**
+
 > **Atualização AstraChefe V3 (14/11/2026)**: Home independente com recomendações em alta, sessão restaurada após F5, atualização de dados a cada 10 s, cadastro de produto expandido e ficha técnica com baixa/estorno de estoque quando o módulo estiver habilitado. Veja [docs/ALTERACOES_V3.md](docs/ALTERACOES_V3.md) para detalhes, testes, limitações e aplicação da migração Flyway. Os trechos abaixo documentam a implementação histórica e podem citar funcionalidades antes pendentes.
 
 # Backend — Sistema de Gerenciamento de Restaurantes

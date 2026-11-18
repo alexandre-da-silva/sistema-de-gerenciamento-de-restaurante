@@ -9,7 +9,7 @@ function setup(){
   token:'test-token',perfil:'ADMIN',page:'Dashboard',nomeUsuario:'Alexandre Santana',
   esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]),
   $:id=>elements[id]||null,api:async()=>[],render:()=>{},document:{querySelector:()=>({classList:{toggle(){}}})},innerWidth:1672};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync('src/main/resources/static/js/admin.js','utf8'),ctx);
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../src/main/resources/static/js/admin.js'),'utf8'),ctx);
  return {ctx,elements,run:s=>vm.runInContext(s,ctx)};
 }
 test('dashboard renders actual totals and no example names or sales',()=>{
@@ -41,4 +41,14 @@ test('late responses cannot overwrite the next screen',async()=>{
 });
 test('zero-base percentage and 24 hour chart do not produce NaN or infinity',()=>{
  const s=setup();assert.doesNotMatch(s.run('growth(100,0)'),/Infinity|NaN/);assert.match(s.run('growth(0,0)'),/Sem movimento/);const html=s.run('salesChart([])');assert.doesNotMatch(html,/Infinity|NaN/);assert.match(html,/23h/);
+});
+test('background pagination cannot repaint a different screen',async()=>{
+ const s=setup();s.ctx.page='Pedidos';s.ctx.document.visibilityState='visible';s.ctx.document.getElementById=()=>null;
+ s.ctx.window={scrollY:0,scrollTo(){}};
+ let release;const pending=new Promise(r=>release=r);
+ s.ctx.api=async path=>path==='admin/pedidos/contagem'?{recebidos:1}:pending;
+ const work=s.run('sincronizarIndicadoresAdmin()');await Promise.resolve();await Promise.resolve();
+ s.run("adminState.version++;page='Estoque';adminState.data={stock:[{id:1}]}");s.elements['admin-content'].innerHTML='stock screen';
+ release([{id:1,status:'RECEBIDO'}]);await work;
+ assert.equal(s.elements['admin-content'].innerHTML,'stock screen');assert.equal(s.run('adminState.data.orders'),undefined);
 });

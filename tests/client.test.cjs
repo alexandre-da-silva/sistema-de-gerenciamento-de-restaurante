@@ -41,8 +41,8 @@ test('cart uses promotional cents and explicit optional service',()=>{
 test('client adds, adjusts quantities and sends only IDs with a reference',async()=>{
  const ctx=await setup();const {w,writes,errors}=ctx;
  try{
- assert.equal(w.document.querySelectorAll('.c-product').length,2);
- await click(w,'.c-product .c-small');
+ assert.equal(w.document.querySelectorAll('#catalog-grid .c-product').length,2);
+ [...w.document.querySelectorAll('.c-product')].find(p=>p.textContent.includes('Picanha Grelhada')).querySelector('.c-small').click();await wait();
  await click(w,'[aria-label="Aumentar Picanha Grelhada"]');
  assert.equal(w.document.querySelector('.c-quantity span').textContent,'2');
  await click(w,'[aria-label="Diminuir Picanha Grelhada"]');
@@ -51,7 +51,7 @@ test('client adds, adjusts quantities and sends only IDs with a reference',async
  assert.ok(w.document.querySelector('dialog').open);
  button(w,'Confirmar e enviar para a cozinha').click();await wait();
  assert.equal(writes.length,1);assert.equal(writes[0].key,'cliente/pedidos');
- assert.deepEqual(writes[0].body.itens,[{produtoId:1,quantidade:1}]);
+ assert.deepEqual(writes[0].body.itens,[{produtoId:1,quantidade:1,precoEsperado:'49.90'}]);
  assert.equal(writes[0].body.taxaServico,true);assert.match(writes[0].body.referencia,/^[a-f0-9-]{36}$/);
  assert.equal('total' in writes[0].body,false);assert.equal(w.document.querySelector('.c-cart'),null);
  assert.deepEqual(errors,[]);
@@ -60,23 +60,53 @@ test('client adds, adjusts quantities and sends only IDs with a reference',async
 test('coffee search ignores accents and opens supplied pouring menu; main dishes open conveyor',async()=>{
  const ctx=await setup();const {w,errors}=ctx;
  try{
- button(w,'Cardápio','.c-sidebar').click();await wait();
+ button(w,'Início','.c-sidebar').click();await wait();
  button(w,'Bebidas','.c-categories').click();await wait();
  input(w,w.document.querySelector('[aria-label="Buscar no cardápio"]'),'cafe');await wait();
- assert.equal(w.document.querySelectorAll('.c-product').length,1);
+ assert.equal(w.document.querySelectorAll('#catalog-grid .c-product').length,1);
  assert.ok(w.document.querySelector('.c-coffee'));
  button(w,'Pratos Principais','.c-categories').click();await wait();
  assert.ok(w.document.querySelector('.c-conveyor'));
- assert.equal(w.document.querySelectorAll('.c-product').length,1);
+ assert.equal(w.document.querySelectorAll('#catalog-grid .c-product').length,1);
  assert.deepEqual(errors,[]);
  }finally{ctx.close()}
 });
 test('navigation opens orders, offers, reviews and profile with real empty states',async()=>{
  const ctx=await setup();const {w,errors}=ctx;
  try{
- for(const name of ['Meus Pedidos','Acompanhar Pedido','Promoções','Avaliações','Perfil','Cardápio']){
+ for(const name of ['Meus Pedidos','Avaliações','Perfil','Início']){
  button(w,name,'.c-sidebar').click();await wait();assert.ok(w.document.querySelector('.c-main').textContent.length>30);
  }
  assert.deepEqual(errors,[]);
+ }finally{ctx.close()}
+});
+test('uncertain checkout survives remount and replays the exact payload after price changes',async()=>{
+ const ctx=await setup();const {w,writes}=ctx;
+ try{
+  [...w.document.querySelectorAll('.c-product')].find(p=>p.textContent.includes('Picanha Grelhada')).querySelector('.c-small').click();await wait();
+  const originalFetch=w.fetch;let first=true;
+  w.fetch=async(url,opt={})=>{const result=await originalFetch(url,opt);if(opt.method==='POST'&&first){first=false;throw Error('response lost')}return result};
+  button(w,'Confirmar Pedido').click();await wait();button(w,'Confirmar e enviar para a cozinha').click();await wait();
+  assert.equal(writes.length,1);const originalBody=JSON.stringify(writes[0].body);assert.ok(w.localStorage.getItem('astrachefe:cliente@example.com:pedido-pendente'));
+  w.AstraClient.unmount();
+  w.fetch=async(url,opt={})=>url.endsWith('publico/cardapio')?{ok:true,status:200,json:async()=>products.map(p=>({...p,precoPromocional:55}))}:originalFetch(url,opt);
+  w.AstraClient.mount({token:'fixture',nome:'Alexandre',onLogout(){}});await wait();await wait();
+  button(w,'Verificar envio pendente').click();await wait();await wait();
+  assert.equal(writes.length,2);assert.equal(JSON.stringify(writes[1].body),originalBody);assert.equal(w.localStorage.getItem('astrachefe:cliente@example.com:pedido-pendente'),null);assert.equal(JSON.parse(w.localStorage.getItem('astrachefe:cliente@example.com')).cartLines.length,0);
+ }finally{ctx.close()}
+});
+
+test('cart separates unit price from line total and removes the last unit',async()=>{
+ const ctx=await setup();const {w}=ctx;
+ try{
+  w.document.querySelector('#catalog-grid .c-small').click();await wait();
+  w.document.querySelector('.c-quantity button:last-child').click();await wait();
+  const row=w.document.querySelector('.c-cart-item');
+  assert.match(row.querySelector('small').textContent,/49,90 por unidade/);
+  assert.match(row.querySelector('b').textContent,/99,80/);
+  row.querySelector('.c-quantity button').click();await wait();
+  w.document.querySelector('.c-quantity button').click();await wait();
+  assert.equal(w.document.querySelectorAll('.c-cart-item').length,0);
+  assert.ok(button(w,'Confirmar Pedido').disabled);
  }finally{ctx.close()}
 });

@@ -2,6 +2,7 @@ package br.com.uchub.restaurante.service;
 import br.com.uchub.restaurante.repository.*;
 import br.com.uchub.restaurante.dto.GestaoRequests.*;
 import br.com.uchub.restaurante.model.Usuario;
+import br.com.uchub.restaurante.model.PerfilUsuario;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,21 @@ public class GestaoService {
         usuarios.save(new Usuario(request.nome(),request.email().trim().toLowerCase(java.util.Locale.ROOT),encoder.encode(request.senha()),null,request.perfil()));
     }
     @Transactional
+    public void atualizarUsuario(long id, Boolean ativo, PerfilUsuario perfil, String administrador) {
+        if(ativo==null && perfil==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Informe os campos a atualizar.");
+        Usuario alvo=usuarios.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado."));
+        if(alvo.getEmail().equals(administrador)
+            && (Boolean.FALSE.equals(ativo)||perfil!=null && perfil!=PerfilUsuario.ADMIN))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Não é possível retirar sua própria autorização administrativa.");
+        boolean deixaDeSerAdmin=alvo.getPerfil()==PerfilUsuario.ADMIN && alvo.isAtivo()
+            && (Boolean.FALSE.equals(ativo) || perfil!=null && perfil!=PerfilUsuario.ADMIN);
+        if(deixaDeSerAdmin && usuarios.countByPerfilAndAtivoTrue(PerfilUsuario.ADMIN)<=1)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"O último administrador ativo não pode ser removido.");
+        if(perfil!=null)alvo.setPerfil(perfil);
+        if(ativo!=null)alvo.setAtivo(ativo);
+        // As mudanças revogam automaticamente os JWTs emitidos antes.
+    }
+    @Transactional
     public void movimentar(long id, Movimento request, String email) {
         recursos.exigirHabilitado("CONTROLE_ESTOQUE");
         var jdbc=repository.jdbc();
@@ -41,6 +57,28 @@ public class GestaoService {
         if(linhas==0)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Ingrediente não encontrado.");
     }
     @Transactional
+    public void atualizarMinimo(long id,Minimo request){
+        recursos.exigirHabilitado("CONTROLE_ESTOQUE");
+        if(repository.jdbc().update("UPDATE ingredientes SET quantidade_minima=? WHERE id=?",request.quantidadeMinima(),id)==0)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Ingrediente não encontrado.");
+    }
+    @Transactional
+    public void liberarMesa(long id){
+        recursos.exigirHabilitado("MESAS_E_COMANDAS");
+        var jdbc=repository.jdbc();
+        if(jdbc.queryForList("SELECT id FROM mesas WHERE id=? FOR UPDATE",Long.class,id).isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Mesa não encontrada.");
+        Integer emAndamento=jdbc.queryForObject("SELECT COUNT(*) FROM pedidos WHERE mesa_id=? AND status NOT IN ('ENTREGUE','CANCELADO')",Integer.class,id);
+        if(emAndamento!=null && emAndamento>0)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Conclua ou cancele os pedidos antes de liberar a mesa.");
+        if(recursos.habilitado("CAIXA_E_PAGAMENTOS")){
+            Integer semPagamento=jdbc.queryForObject("SELECT COUNT(*) FROM pedidos p WHERE p.mesa_id=? AND p.status='ENTREGUE' AND NOT EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO')",Integer.class,id);
+            if(semPagamento!=null && semPagamento>0)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"Confirme os pagamentos antes de liberar a mesa.");
+        }
+        jdbc.update("UPDATE mesas SET status='LIVRE' WHERE id=?",id);
+    }
+    @Transactional
     public void pagar(long id, Pagamento request) {
         recursos.exigirHabilitado("CAIXA_E_PAGAMENTOS");
         var jdbc=repository.jdbc();
@@ -54,6 +92,10 @@ public class GestaoService {
         }
         if(!"ENTREGUE".equals(pedido.get("status"))) throw new ResponseStatusException(HttpStatus.CONFLICT,"Finalize a entrega antes de fechar a conta.");
         jdbc.update("INSERT INTO pagamentos(pedido_id,valor,forma_pagamento,status,referencia_transacao) VALUES (?,?,?,'CONFIRMADO',?)",id,pedido.get("total"),request.forma(),request.referencia());
-        if(pedido.get("mesa_id")!=null) jdbc.update("UPDATE mesas SET status='LIVRE' WHERE id=?",pedido.get("mesa_id"));
+        if(pedido.get("mesa_id")!=null) jdbc.update(
+            "UPDATE mesas SET status='LIVRE' WHERE id=? AND NOT EXISTS ("
+            + "SELECT 1 FROM pedidos p WHERE p.mesa_id=mesas.id AND p.status<>'CANCELADO' "
+            + "AND NOT EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO'))",
+            pedido.get("mesa_id"));
     }
 }

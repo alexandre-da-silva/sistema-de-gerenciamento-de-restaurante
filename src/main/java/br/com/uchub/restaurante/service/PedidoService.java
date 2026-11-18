@@ -10,6 +10,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @Service
 public class PedidoService {
@@ -28,12 +31,17 @@ public class PedidoService {
     @Transactional
     public PedidoResponse criar(String emailCliente, PedidoRequest request) {
         recursos.exigirHabilitado("PEDIDOS_ONLINE");
-        Usuario cliente = usuarios.findByEmail(emailCliente)
+        Usuario cliente = usuarios.findByEmailForUpdate(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."));
         if(cliente.getPerfil()!=PerfilUsuario.CLIENTE || !cliente.isAtivo())
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Somente clientes podem criar pedidos.");
+        String requestHash = hashPedido(request);
         var anterior=pedidos.findByClienteEmailAndReferencia(emailCliente,request.referencia());
-        if(anterior.isPresent())return toResponse(anterior.get());
+        if(anterior.isPresent()) {
+            if (!requestHash.equals(anterior.get().getRequestHash()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"Referência já utilizada por um pedido diferente.");
+            return toResponse(anterior.get());
+        }
         if (request.mesaId() != null) recursos.exigirHabilitado("MESAS_E_COMANDAS");
         Mesa mesa = request.mesaId() == null ? null : mesas.findById(request.mesaId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mesa não encontrada."));
@@ -70,16 +78,24 @@ public class PedidoService {
                 if(valor==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Adicional inválido.");
                 preco=preco.add(valor);nomes.add(detalhes.nomeAdicional(produto.getId(),id));
             }
+            // Se o cardápio mudou desde a montagem do carrinho, não cobre silenciosamente
+            // um preço diferente do que o cliente confirmou.
+            if (itemRequest.precoEsperado()!=null && preco.compareTo(itemRequest.precoEsperado())!=0)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Preço alterado para " + produto.getNome() + ". Confira o novo valor e confirme novamente.");
             ItemPedido item = new ItemPedido(produto, itemRequest.quantidade());
-            item.personalizar(variacao,String.join(", ",nomes),preco);
+            item.personalizar(variacao,String.join(", ",nomes),preco,variacaoId,adicionais);
+            item.setObservacao(itemRequest.observacao());
             pedido.adicionarItem(item);
             total = total.add(item.getSubtotal());
         }
         BigDecimal taxa=Boolean.TRUE.equals(request.taxaServico()) ? total.multiply(new BigDecimal("0.10")).setScale(2,java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
         pedido.definirCheckout(taxa,request.referencia());
+        pedido.definirRequestHash(requestHash);
         pedido.definirTotal(total.add(taxa));
         if (mesa != null) mesa.setStatus("OCUPADA");
         pedidos.saveAndFlush(pedido);
+        estoque.registrarAdicionais(pedido);
         estoque.baixar(pedido); // Transação única: em caso de falha, pedido e movimentações são revertidos.
         return toResponse(pedido);
     }
@@ -108,7 +124,8 @@ public class PedidoService {
         if (!permitido) throw new ResponseStatusException(HttpStatus.CONFLICT, "Transição de status não permitida.");
         pedido.atualizarStatus(novoStatus);
         if(novoStatus==StatusPedido.CANCELADO)estoque.estornar(pedido);
-        if (pedido.getMesa() != null && (novoStatus == StatusPedido.CANCELADO)) {
+        if (pedido.getMesa() != null && (novoStatus == StatusPedido.CANCELADO
+                || novoStatus == StatusPedido.ENTREGUE && !recursos.habilitado("CAIXA_E_PAGAMENTOS"))) {
             pedido.getMesa().setStatus("LIVRE");
         }
         return toResponse(pedido);
@@ -124,10 +141,16 @@ public class PedidoService {
         if(pedido.getMesa()!=null)pedido.getMesa().setStatus("LIVRE");
         return toResponse(pedido);
     }
+    private String hashPedido(PedidoRequest request) {
+        try {
+            byte[] digest=MessageDigest.getInstance("SHA-256").digest(request.toString().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) { throw new IllegalStateException("SHA-256 indisponível",e); }
+    }
     private PedidoResponse toResponse(Pedido p) {
         List<PedidoResponse.Item> itens = p.getItens().stream().map(i -> new PedidoResponse.Item(
-                i.getProduto().getId(), i.getProduto().getNome(), i.getQuantidade(),
-                i.getPrecoUnitario(), i.getSubtotal(),i.getProduto().getImagemUrl(),i.getVariacaoNome(),i.getAdicionaisDescricao())).toList();
+                i.getProduto().getId(), i.getProdutoNome(), i.getQuantidade(),
+                i.getPrecoUnitario(), i.getSubtotal(),i.getImagemUrlSnapshot(),i.getVariacaoNome(),i.getAdicionaisDescricao(),i.getObservacao())).toList();
         return new PedidoResponse(p.getId(), p.getCliente().getNome(),
                 p.getMesa() == null ? null : p.getMesa().getNumero(), p.getStatus(),
                 p.getTotal(), p.getObservacao(), p.getCriadoEm(), itens,p.getTaxaServico(),p.getAtualizadoEm(),p.getEtapas(),

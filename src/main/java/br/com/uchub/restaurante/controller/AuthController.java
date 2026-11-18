@@ -20,6 +20,8 @@ public class AuthController {
     }
     @PostMapping("/registrar") public TokenResponse registrar(@Valid @RequestBody RegistroRequest request) { return auth.registrar(request); }
     @PostMapping("/login") public TokenResponse login(@Valid @RequestBody LoginRequest request) { return auth.login(request); }
+    @PostMapping("/logout") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(Authentication authentication) { auth.logout(authentication.getName()); }
     @PutMapping("/senha") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void alterarSenha(@Valid @RequestBody AlterarSenhaRequest request, Authentication authentication) {
         auth.alterarSenha(authentication.getName(), request);

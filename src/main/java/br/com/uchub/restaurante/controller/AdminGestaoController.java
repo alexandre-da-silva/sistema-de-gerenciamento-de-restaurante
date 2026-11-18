@@ -18,14 +18,21 @@ public class AdminGestaoController {
     }
     @GetMapping("/usuarios") public List<Map<String,Object>> usuarios() { return repository.usuarios(); }
     @PostMapping("/usuarios") public void usuario(@Valid @RequestBody Usuario request) { service.usuario(request); }
+    public record UsuarioAtualizacao(Boolean ativo, br.com.uchub.restaurante.model.PerfilUsuario perfil) {}
+    @PatchMapping("/usuarios/{id}")
+    public void atualizarUsuario(@PathVariable long id,@RequestBody UsuarioAtualizacao request,Principal principal) {
+        service.atualizarUsuario(id,request.ativo(),request.perfil(),principal.getName());
+    }
     @GetMapping("/categorias") public List<Map<String,Object>> categorias() { return repository.categorias(); }
     @PostMapping("/categorias") public void categoria(@Valid @RequestBody Categoria request) { repository.categoria(request.nome(),request.descricao()); }
     @GetMapping("/mesas") public List<Map<String,Object>> mesas() { recursos.exigirHabilitado("MESAS_E_COMANDAS"); return repository.mesas(); }
     @PostMapping("/mesas") public void mesa(@Valid @RequestBody Mesa request) { recursos.exigirHabilitado("MESAS_E_COMANDAS"); repository.mesa(request.numero(),request.capacidade()); }
     @GetMapping("/estoque") public List<Map<String,Object>> estoque() { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); return repository.estoque(); }
-    @PostMapping("/estoque") public void ingrediente(@Valid @RequestBody Ingrediente request) { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); repository.ingrediente(request.nome(),request.unidade(),request.custoUnitario()); }
+    @PostMapping("/estoque") public void ingrediente(@Valid @RequestBody Ingrediente request) { recursos.exigirHabilitado("CONTROLE_ESTOQUE"); repository.ingrediente(request.nome(),request.unidade(),request.custoUnitario(),request.quantidadeMinima()); }
     @PostMapping("/estoque/{id}/movimentos") public void movimento(@PathVariable long id, @Valid @RequestBody Movimento request, Principal principal) { service.movimentar(id,request,principal.getName()); }
     @PutMapping("/estoque/{id}/custo") public void custo(@PathVariable long id,@Valid @RequestBody Custo request) {service.atualizarCusto(id,request);}
+    @PutMapping("/estoque/{id}/minimo") public void minimo(@PathVariable long id,@Valid @RequestBody Minimo request) {service.atualizarMinimo(id,request);}
+    @PostMapping("/mesas/{id}/liberar") public void liberarMesa(@PathVariable long id) {service.liberarMesa(id);}
     @GetMapping("/pedidos") public List<Map<String,Object>> pedidos() { return repository.pedidos(); }
     @PostMapping("/pedidos/{id}/pagamentos") public void pagamento(@PathVariable long id,@Valid @RequestBody Pagamento request) { service.pagar(id,request); }
     @GetMapping("/relatorios/vendas") public List<Map<String,Object>> vendas() { recursos.exigirHabilitado("RELATORIOS"); return repository.vendas(); }

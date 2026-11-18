@@ -13,15 +13,24 @@ import java.util.*;
 public class EstoquePedidoService {
  private final JdbcTemplate jdbc;
  public EstoquePedidoService(JdbcTemplate jdbc){this.jdbc=jdbc;}
+ public void registrarAdicionais(Pedido pedido) {
+  for(var item:pedido.getItens())for(Long adicionalId:item.getAdicionaisIds())
+   jdbc.update("INSERT INTO item_pedido_adicionais(item_pedido_id,adicional_id) VALUES (?,?)",item.getId(),adicionalId);
+ }
  public void baixar(Pedido pedido){
   if(pedido.isEstoqueBaixado())return;
   boolean habilitado=Boolean.TRUE.equals(jdbc.queryForObject(
     "SELECT habilitado FROM recursos_sistema WHERE codigo='CONTROLE_ESTOQUE'",Boolean.class));
   if(!habilitado)return;
-  List<Map<String,Object>> itens=jdbc.queryForList("SELECT pi.ingrediente_id ingredienteId,"
-   + "SUM(pi.quantidade_necessaria*ip.quantidade) quantidade FROM itens_pedido ip "
-   + "JOIN produto_ingredientes pi ON pi.produto_id=ip.produto_id WHERE ip.pedido_id=? "
-   + "GROUP BY pi.ingrediente_id ORDER BY pi.ingrediente_id",pedido.getId());
+  List<Map<String,Object>> itens=jdbc.queryForList("SELECT ingredienteId,SUM(quantidade) AS quantidade FROM ("
+   + " SELECT pi.ingrediente_id ingredienteId, pi.quantidade_necessaria*ip.quantidade quantidade"
+   + " FROM itens_pedido ip JOIN produto_ingredientes pi ON pi.produto_id=ip.produto_id WHERE ip.pedido_id=?"
+   + " UNION ALL SELECT vi.ingrediente_id, vi.quantidade_necessaria*ip.quantidade"
+   + " FROM itens_pedido ip JOIN variacao_ingredientes vi ON vi.variacao_id=ip.variacao_id WHERE ip.pedido_id=?"
+   + " UNION ALL SELECT ai.ingrediente_id, ai.quantidade_necessaria*ip.quantidade"
+   + " FROM itens_pedido ip JOIN item_pedido_adicionais ia ON ia.item_pedido_id=ip.id"
+   + " JOIN adicional_ingredientes ai ON ai.adicional_id=ia.adicional_id WHERE ip.pedido_id=?"
+   + " ) consumo GROUP BY ingredienteId ORDER BY ingredienteId",pedido.getId(),pedido.getId(),pedido.getId());
   for(var item:itens){
    long id=((Number)item.get("ingredienteId")).longValue();
    BigDecimal precisa=(BigDecimal)item.get("quantidade");

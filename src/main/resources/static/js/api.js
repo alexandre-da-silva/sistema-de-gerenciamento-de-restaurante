@@ -22,7 +22,12 @@ async function api(path, method = "GET", body) {
           ? "E-mail ou senha inválidos. Confira seus dados ou crie uma conta."
           : "Entre novamente para continuar."
         : "Não foi possível concluir a solicitação (" + response.status + ").";
-    throw Error(data?.message || message);
+    const error = Error(data?.message || message); error.status=response.status; throw error;
   }
   return data;
+}
+
+function revogarSessaoNoServidor() {
+  if (!token) return Promise.resolve();
+  return fetch('/api/v1/auth/logout', {method:'POST',headers:{Authorization:'Bearer '+token}}).catch(()=>{});
 }

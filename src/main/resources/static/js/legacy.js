@@ -1,3 +1,12 @@
+let cozinhaLiveTimer=null,cozinhaRefreshing=false;
+function pararAtualizacaoCozinha(){if(cozinhaLiveTimer!==null){clearInterval(cozinhaLiveTimer);cozinhaLiveTimer=null;}}
+async function sincronizarCozinha(){
+ if(cozinhaRefreshing||perfil!=='COZINHA'||page!=='Cozinha'||document.visibilityState!=='visible'
+   ||$('modal')?.open||document.activeElement?.matches('input,select,textarea,[contenteditable]'))return;
+ cozinhaRefreshing=true;
+ try{await renderLegacy(true);}finally{cozinhaRefreshing=false;}
+}
+function iniciarAtualizacaoCozinha(){if(cozinhaLiveTimer===null&&typeof setInterval==='function')cozinhaLiveTimer=setInterval(sincronizarCozinha,15000);}
 const routes = {
   Pedidos: "cliente/pedidos",
   Cozinha: "cozinha/pedidos",
@@ -9,9 +18,15 @@ const routes = {
   Relatórios: "admin/relatorios/vendas",
   Usuários: "admin/usuarios",
 };
-async function renderLegacy() {
+async function renderLegacy(silencioso=false) {
+  if(perfil==='COZINHA')iniciarAtualizacaoCozinha();
   const renderToken = token;
   const renderPage = page;
+  let dadosAtualizados;
+  if(silencioso){
+    try{dadosAtualizados=await api('cozinha/pedidos');}catch(e){if(token===renderToken&&$('error'))$('error').textContent=e.message;return;}
+    if(token!==renderToken||page!==renderPage||$('modal')?.open)return;
+  }
   const admin = perfil === "ADMIN";
   const menus = admin
     ? Object.keys(routes)
@@ -40,8 +55,8 @@ async function renderLegacy() {
     page +
     '</h1><button id="create" class="action">Adicionar</button></div><p id="error" role="status"></p><section class="panel" id="content"></section></main>';
   $("exit").onclick = () => {
-    token = "";
-    perfil = "";
+    revogarSessaoNoServidor();
+    limparSessao();
     login();
   };
   $("refresh").onclick = render;
@@ -131,7 +146,7 @@ async function renderLegacy() {
     }
   };
   try {
-    const data = await api(path);
+    const data = dadosAtualizados ?? await api(path);
     if (token !== renderToken || page !== renderPage || !$("content")) return;
     $("content").innerHTML =
       data

@@ -29,6 +29,10 @@ public class Pedido {
     private List<ItemPedido> itens = new ArrayList<>();
     @Column(name="taxa_servico",precision=12,scale=2) private BigDecimal taxaServico=BigDecimal.ZERO;
     @Column(length=36) private String referencia;
+    @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.CHAR)
+    @Column(name="request_hash", length=64, columnDefinition="char(64)") private String requestHash;
+    public void definirRequestHash(String hash) { this.requestHash=hash; }
+    public String getRequestHash() { return requestHash; }
     @Column(name="preparo_em") private LocalDateTime preparoEm;
     @Column(name="pronto_em") private LocalDateTime prontoEm;
     @Column(name="entregue_em") private LocalDateTime entregueEm;

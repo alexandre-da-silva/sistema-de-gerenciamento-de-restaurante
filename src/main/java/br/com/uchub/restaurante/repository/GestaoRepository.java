@@ -22,5 +22,9 @@ public class GestaoRepository {
     public void categoria(String nome, String descricao) { jdbc.update("INSERT INTO categorias(nome,descricao) VALUES (?,?)", nome, descricao); }
     public void mesa(int numero, int capacidade) { jdbc.update("INSERT INTO mesas(numero,capacidade_pessoas) VALUES (?,?)",numero,capacidade); }
     public void ingrediente(String nome,String unidade,java.math.BigDecimal custo){jdbc.update("INSERT INTO ingredientes(nome,unidade_medida,custo_unitario) VALUES (?,?,?)",nome,unidade,custo==null?java.math.BigDecimal.ZERO:custo);}
+    public void ingrediente(String nome,String unidade,java.math.BigDecimal custo,java.math.BigDecimal minimo){
+        jdbc.update("INSERT INTO ingredientes(nome,unidade_medida,custo_unitario,quantidade_minima) VALUES (?,?,?,?)",
+            nome,unidade,custo==null?java.math.BigDecimal.ZERO:custo,minimo==null?java.math.BigDecimal.ZERO:minimo);
+    }
     public JdbcTemplate jdbc() { return jdbc; }
 }

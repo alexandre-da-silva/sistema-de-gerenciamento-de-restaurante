@@ -41,10 +41,43 @@ function shortDate(value) { if(!value)return "—"; const date=new Date(value); 
 function elapsed(value) { if(!value)return "—"; const minutes=Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/60000)); return !Number.isFinite(minutes)?"—": minutes<60?`${minutes} min`:`${Math.floor(minutes/60)} h`; }
 function growth(now, before) { if(before==null||now==null)return "Sem comparação disponível"; if(Number(before)===0)return Number(now)>0?"Primeiros registros no período":"Sem movimento no período"; const change=(Number(now)-Number(before))/Number(before)*100; return `<span class="${change>=0?'positive':'negative'}">${change>=0?'▲':'▼'} ${quantity(Math.abs(change))}%</span> em relação ao dia anterior`; }
 function goAdmin(next) { page=next;salvarSessao();adminState.query="";adminState.status="";render(); }
-let adminLiveTimer=null;
+let adminLiveTimer=null,adminSyncRunning=false;
 function pararAtualizacaoAdmin(){if(adminLiveTimer!==null){clearInterval(adminLiveTimer);adminLiveTimer=null;}}
+async function carregarPedidosAdmin(){
+ const resultado=[];let antesDe=null;
+ for(;;){
+  const lote=await api('admin/pedidos/detalhes'+(antesDe?'?antesDe='+antesDe:''));
+  resultado.push(...lote);
+  if(lote.length<500)return resultado;
+  const cursor=Math.min(...lote.map(p=>Number(p.id)));
+  if(!Number.isSafeInteger(cursor)||cursor<1||(antesDe!==null&&cursor>=antesDe))throw Error('Não foi possível carregar todo o histórico de pedidos.');
+  antesDe=cursor;
+ }
+}
+async function sincronizarIndicadoresAdmin(){
+ if(adminSyncRunning||perfil!=='ADMIN'||document.visibilityState!=='visible')return;
+ const syncVersion=adminState.version,syncToken=token,syncPage=page;adminSyncRunning=true;
+ try{
+  const data=await api('admin/pedidos/contagem');
+  if(syncVersion!==adminState.version||syncToken!==token||syncPage!==page)return;
+  adminState.recebidos=Number(data.recebidos)||0;
+  const badge=$('notification-count');if(badge){badge.hidden=!adminState.recebidos;badge.textContent=adminState.recebidos;}
+  // Só a cozinha e os pedidos recebem atualização automática da lista.
+  // Nunca reinicia a tela inteira apenas para atualizar o contador.
+  if(['Pedidos','Cozinha'].includes(page)&&!document.getElementById('modal')?.open
+    &&!document.activeElement?.matches('input,select,textarea,[contenteditable]')){
+   const pedidos=await carregarPedidosAdmin();
+   if(syncVersion!==adminState.version||syncToken!==token||syncPage!==page||document.getElementById('modal')?.open)return;
+   if(JSON.stringify(pedidos)!==JSON.stringify(adminState.data.orders||[])){
+    adminState.data.orders=pedidos;
+    const y=window.scrollY;paintAdmin();window.scrollTo(0,y);
+   }
+  }
+ }catch(e){/* Falha de rede não deve apagar a tela nem os campos em edição. */}
+ finally{adminSyncRunning=false;}
+}
 function iniciarAtualizacaoAdmin(){if(adminLiveTimer!==null||typeof setInterval!=='function')return;
- adminLiveTimer=setInterval(()=>{if(perfil==='ADMIN'&&document.visibilityState==='visible'&&!document.getElementById('modal')?.open)renderAdmin(true);},10000);
+ adminLiveTimer=setInterval(sincronizarIndicadoresAdmin,15000);
 }
 function adminShell() {
  const subtitles={Dashboard:"Aqui está o resumo do seu restaurante hoje.",Pedidos:"Acompanhe cada pedido, do recebimento à entrega.",Mesas:"Uma visão do seu salão, mesa por mesa.",Cardápio:"Os sabores da casa, organizados em um só lugar.",Cozinha:"Organize o preparo e mantenha os pedidos em dia.",Estoque:"Cuide dos ingredientes e acompanhe as reposições.",Clientes:"Conheça quem faz parte da história do seu restaurante.",Relatórios:"Acompanhe os recebimentos do seu restaurante.",Financeiro:"Confirme os pagamentos e acompanhe as contas.",Configurações:"Escolha os módulos disponíveis na sua operação."};
@@ -69,8 +102,10 @@ async function renderAdmin(silencioso=false) {
  else if(page==='Clientes') routes=[['clients','admin/clientes']];
  else if(page==='Relatórios') routes=[['sales','admin/relatorios/vendas']];
  else if(page==='Configurações') routes=[['features','admin/recursos']];
- const results=await Promise.allSettled(routes.map(async([key,path])=>[key,await api(path)]));
+ const results=await Promise.allSettled(routes.map(async([key,path])=>[key,await (path==='admin/pedidos/detalhes'?carregarPedidosAdmin():api(path))]));
+ sincronizarIndicadoresAdmin().catch(()=>{});
  if(version!==adminState.version || currentToken!==token || !$('admin-content'))return;
+ if(silencioso && document.activeElement?.matches('input,select,textarea,[contenteditable]'))return;
  adminState.data={}; adminState.errors={};
  results.forEach((r,i)=>{if(r.status==='fulfilled')adminState.data[r.value[0]]=r.value[1];else adminState.errors[routes[i][0]]=r.reason.message;});
  const fatal=Object.keys(adminState.errors).filter(key=>!(page==='Dashboard'&&key==='tables'));
@@ -81,7 +116,7 @@ function paintAdmin() {
  if(!$('admin-content'))return;
  const views={Dashboard:dashboardView,Pedidos:ordersView,Mesas:tablesView,Cardápio:menuView,Cozinha:kitchenView,Estoque:stockView,Clientes:clientsView,Relatórios:reportsView,Financeiro:financeView,Configurações:settingsView};
  $('admin-content').innerHTML=views[page]();
- const count=(adminState.data.orders||[]).filter(p=>p.status==='RECEBIDO').length;
+ const count=adminState.recebidos??(adminState.data.orders||[]).filter(p=>p.status==='RECEBIDO').length;
  if($('notification-count')){$('notification-count').hidden=!count;$('notification-count').textContent=count;}
  const filter=$('status-filter');if(filter)filter.onchange=e=>{adminState.status=e.target.value;paintAdmin();};
 }
@@ -108,11 +143,11 @@ function salesChart(rows) {
  return `<svg class="chart" viewBox="0 0 390 170" role="img" aria-label="Recebimentos por hora em reais"><defs><linearGradient id="sales-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff8b26" stop-opacity=".45"/><stop offset="100%" stop-color="#ff8b26" stop-opacity=".03"/></linearGradient></defs>${[0,1,2,3,4].map(i=>`<line x1="45" y1="${140-i*30}" x2="377" y2="${140-i*30}" stroke="#eae0da"/><text x="38" y="${144-i*30}" text-anchor="end">${quantity(max*i/4)}</text>`).join('')}<polygon points="45,140 ${points} 376.2,140" fill="url(#sales-fill)"/><polyline points="${points}" fill="none" stroke="#f67a0a" stroke-width="2.5"/>${values.map((v,h)=>v?`<circle cx="${x(h)}" cy="${y(v)}" r="3" fill="white" stroke="#f67a0a" stroke-width="1.5"><title>${h}h: ${brl(v)}</title></circle>`:'').join('')}${[0,4,8,12,16,20,23].map(h=>`<text x="${x(h)}" y="160" text-anchor="middle">${h}h</text>`).join('')}</svg>`;
 }
 function statusFilter() {return `<select id="status-filter" aria-label="Filtrar status"><option value="">Todos os status</option>${Object.entries(statusNames).map(([value,label])=>`<option value="${value}" ${adminState.status===value?'selected':''}>${label}</option>`).join('')}</select>`;}
-function ordersView(){ const list=filteredOrders();return `<section class="panel list-panel"><div class="toolbar"><p>${list.length} pedidos · até 500 mais recentes</p>${statusFilter()}</div><div class="panel-content">${list.length?orderTable(list):emptyState('Nenhum pedido encontrado','Os pedidos são feitos exclusivamente pelos clientes.','bag')}</div></section>`; }
+function ordersView(){ const list=filteredOrders();return `<section class="panel list-panel"><div class="toolbar"><p>${list.length} pedidos no histórico</p>${statusFilter()}</div><div class="panel-content">${list.length?orderTable(list):emptyState('Nenhum pedido encontrado','Os pedidos são feitos exclusivamente pelos clientes.','bag')}</div></section>`; }
 function tablesView(){const list=(adminState.data.tables||[]).filter(matches);return list.length?`<div class="table-page-grid">${list.map(m=>`<button class="table-card" data-table="${m.id}"><span class="table-seat ${esc(m.status)}"><span>${String(m.numero).padStart(2,'0')}</span></span><h2>Mesa ${String(m.numero).padStart(2,'0')}</h2><p>${esc(m.status==='LIVRE'?'Livre':m.status==='OCUPADA'?'Ocupada':'Reservada')}</p><p>${m.capacidade_pessoas||'—'} lugares</p></button>`).join('')}</div>`:emptyState('Nenhuma mesa encontrada','Cadastre uma mesa ou ajuste sua busca.','table');}
 function menuView(){const list=(adminState.data.products||[]).filter(matches);return list.length?`<div class="menu-grid">${list.map(p=>`<article class="product-card ${p.ativo?'':'inactive'}"><img class="product-photo" src="${esc(p.imagemUrl||'/images/placeholder.svg')}" alt="${esc(p.nome)}"><h2>${esc(p.nome)}</h2><span class="badge">${esc(p.categoria||'Sem categoria')} · ${p.ativo?'Ativo':'Inativo'}</span><p>${esc(p.descricao||'Sem descrição cadastrada.')}</p><footer><b>${brl(p.preco)}</b><button class="ghost" data-product="${p.id}">${ico('edit')} Editar</button></footer></article>`).join('')}</div>`:emptyState('Seu cardápio está esperando','Adicione o primeiro produto ou ajuste sua busca.','book');}
-function kitchenView(){return `<div class="kanban">${['RECEBIDO','EM_PREPARO','PRONTO'].map(status=>{const list=activeOrders().filter(matches).filter(p=>p.status===status);return `<section class="kanban-column"><h2>${statusBadge(status)} <span class="count-chip">${list.length}</span></h2>${list.length?list.map(p=>`<article class="order-card"><header><b>Pedido #${p.id}</b><span>${p.mesa?'Mesa '+p.mesa:'Sem mesa'}</span></header><p>${esc(p.cliente)} · ${elapsed(p.criado_em)}</p><ul>${(p.itens||[]).map(i=>`<li><b>${i.quantidade}×</b> ${esc(i.produto)}${i.variacao_nome?' · '+esc(i.variacao_nome):''}${i.adicionais_descricao?' (+ '+esc(i.adicionais_descricao)+')':''}</li>`).join('')}</ul>${p.observacao?`<p><b>Observação:</b> ${esc(p.observacao)}</p>`:''}<button class="action" data-step="${p.id}" data-next="${({RECEBIDO:'EM_PREPARO',EM_PREPARO:'PRONTO',PRONTO:'ENTREGUE'})[status]}">${({RECEBIDO:'Iniciar preparo',EM_PREPARO:'Marcar como pronto',PRONTO:'Confirmar entrega'})[status]} ${ico('arrow')}</button></article>`).join(''):emptyState('Nenhum pedido nesta etapa','','chef')}</section>`;}).join('')}</div>`;}
-function stockView(){const list=(adminState.data.stock||[]).filter(matches);return `<section class="panel list-panel"><div class="toolbar"><p>${list.length} ingredientes · ficha técnica, custos e movimentações</p></div><div class="panel-content">${list.length?`<div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Saldo atual</th><th>Mínimo</th><th>Custo unit.</th><th>Situação</th><th>Ações</th></tr></thead><tbody>${list.map(i=>`<tr><td><b>${esc(i.nome)}</b></td><td>${quantity(i.quantidade_atual)} ${esc(i.unidade_medida)}</td><td>${quantity(i.quantidade_minima)} ${esc(i.unidade_medida)}</td><td>${brl(i.custo_unitario)}</td><td>${Number(i.quantidade_atual)<=Number(i.quantidade_minima)?'<span class="stock-low">Reposição necessária</span>':'<span class="positive">Em dia</span>'}</td><td><button class="ghost" data-stock="${i.id}">Movimentar</button> <button class="ghost" data-cost="${i.id}">Custo</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Nenhum ingrediente disponível',adminState.errors.stock||'Cadastre ingredientes para começar.','box')}</div></section>`;}
+function kitchenView(){return `<div class="kanban">${['RECEBIDO','EM_PREPARO','PRONTO'].map(status=>{const list=activeOrders().filter(matches).filter(p=>p.status===status);return `<section class="kanban-column"><h2>${statusBadge(status)} <span class="count-chip">${list.length}</span></h2>${list.length?list.map(p=>`<article class="order-card"><header><b>Pedido #${p.id}</b><span>${p.mesa?'Mesa '+p.mesa:'Sem mesa'}</span></header><p>${esc(p.cliente)} · ${elapsed(p.criado_em)}</p><ul>${(p.itens||[]).map(i=>`<li><b>${i.quantidade}×</b> ${esc(i.produto)}${i.variacao_nome?' · '+esc(i.variacao_nome):''}${i.adicionais_descricao?' (+ '+esc(i.adicionais_descricao)+')':''}${i.observacao_item?' · Obs: '+esc(i.observacao_item):''}</li>`).join('')}</ul>${p.observacao?`<p><b>Observação:</b> ${esc(p.observacao)}</p>`:''}<button class="action" data-step="${p.id}" data-next="${({RECEBIDO:'EM_PREPARO',EM_PREPARO:'PRONTO',PRONTO:'ENTREGUE'})[status]}">${({RECEBIDO:'Iniciar preparo',EM_PREPARO:'Marcar como pronto',PRONTO:'Confirmar entrega'})[status]} ${ico('arrow')}</button></article>`).join(''):emptyState('Nenhum pedido nesta etapa','','chef')}</section>`;}).join('')}</div>`;}
+function stockView(){const list=(adminState.data.stock||[]).filter(matches);return `<section class="panel list-panel"><div class="toolbar"><p>${list.length} ingredientes · ficha técnica, custos e movimentações</p></div><div class="panel-content">${list.length?`<div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Saldo atual</th><th>Mínimo</th><th>Custo unit.</th><th>Situação</th><th>Ações</th></tr></thead><tbody>${list.map(i=>`<tr><td><b>${esc(i.nome)}</b></td><td>${quantity(i.quantidade_atual)} ${esc(i.unidade_medida)}</td><td>${quantity(i.quantidade_minima)} ${esc(i.unidade_medida)}</td><td>${brl(i.custo_unitario)}</td><td>${Number(i.quantidade_atual)<=Number(i.quantidade_minima)?'<span class="stock-low">Reposição necessária</span>':'<span class="positive">Em dia</span>'}</td><td><button class="ghost" data-stock="${i.id}">Movimentar</button> <button class="ghost" data-cost="${i.id}">Custo</button> <button class="ghost" data-minimum="${i.id}">Mínimo</button></td></tr>`).join('')}</tbody></table></div>`:emptyState('Nenhum ingrediente disponível',adminState.errors.stock||'Cadastre ingredientes para começar.','box')}</div></section>`;}
 function clientsView(){const list=(adminState.data.clients||[]).filter(matches);return `<section class="panel list-panel"><div class="toolbar"><p>${list.length} clientes · até 500 registros</p></div><div class="panel-content">${list.length?`<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Pedidos</th><th>Total em pedidos</th><th>Último pedido</th></tr></thead><tbody>${list.map(c=>`<tr><td><span class="client-cell">${ico('user')}<b>${esc(c.nome)}</b></span><small>Desde ${shortDate(c.criado_em)}</small></td><td>${esc(c.email)}<small>${esc(c.telefone||'Telefone não informado')}</small></td><td>${c.pedidos}</td><td>${brl(c.total)}</td><td>${shortDate(c.ultimo_pedido)}</td></tr>`).join('')}</tbody></table></div>`:emptyState('Nenhum cliente encontrado','Cadastre um cliente ou ajuste a busca.','users')}</div></section>`;}
 function reportsView(){const list=(adminState.data.sales||[]).filter(matches);return `<section class="panel list-panel"><div class="toolbar"><p>Recebimentos confirmados · até 365 dias com movimento</p><button class="ghost" data-action="export">Exportar CSV</button></div><div class="panel-content">${list.length?`<div class="table-wrap"><table><thead><tr><th>Data</th><th>Pagamentos</th><th>Total recebido</th></tr></thead><tbody>${list.map(s=>`<tr><td>${esc(String(s.dia).slice(0,10).split('-').reverse().join('/'))}</td><td>${s.pagamentos}</td><td><b>${brl(s.total)}</b></td></tr>`).join('')}</tbody></table></div>`:emptyState('Sem recebimentos para exibir',adminState.errors.sales||'Os pagamentos confirmados aparecerão aqui.','chart')}</div></section>`;}
 function financeView(){const list=filteredOrders().filter(p=>p.status==='ENTREGUE');return `<section class="panel list-panel"><div class="toolbar"><p>Pedidos entregues · confirmação manual do recebimento integral</p></div><div class="panel-content">${list.length?orderTable(list,false,true):emptyState('Nenhuma conta para exibir','Os pedidos entregues aparecerão aqui.','coin')}</div></section>`;}
@@ -130,10 +165,11 @@ function repeatedRow(group,values={}) {
  const fields={
   variacoes: inputField('nome','Tamanho / variação','text',values.nome||'','required maxlength="80"')+inputField('preco','Preço desta variação (R$)','number',values.preco??'','required min="0.01" step="0.01"'),
   adicionais: inputField('nome','Adicional','text',values.nome||'','required maxlength="80"')+inputField('preco','Preço adicional (R$)','number',values.preco??0,'required min="0" step="0.01"'),
+  insumosOpcao:selectField('ingredienteId','Insumo',(adminState.data.ingredients||[]).map(i=>[i.id,i.nome+' ('+i.unidade_medida+')']),values.ingredienteId||'')+inputField('quantidade','Quantidade adicional consumida','number',values.quantidade??'','required min="0.001" step="0.001"'),
   fichaTecnica:selectField('ingredienteId','Insumo',(adminState.data.ingredients||[]).map(i=>[i.id,i.nome+' ('+i.unidade_medida+')']),values.ingredienteId||'')+inputField('quantidade','Quantidade consumida por porção','number',values.quantidade??'','required min="0.001" step="0.001"'),
   disponibilidade:selectField('diaSemana','Dia da semana',[[1,'Segunda'],[2,'Terça'],[3,'Quarta'],[4,'Quinta'],[5,'Sexta'],[6,'Sábado'],[7,'Domingo']],values.diaSemana||1)+inputField('horaInicio','Início','time',values.horaInicio||'11:00','required')+inputField('horaFim','Fim','time',values.horaFim||'15:00','required')
  };
- return `<div class="repeat-row" data-row="${esc(group)}">${fields[group]}<button class="remove-row" type="button" data-remove-row="1" aria-label="Remover linha">Remover</button></div>`;
+ return `<div class="repeat-row" data-row="${esc(group)}">${['variacoes','adicionais'].includes(group)&&values.id?`<input type="hidden" name="id" value="${esc(values.id)}">`:''}${fields[group]}${['variacoes','adicionais'].includes(group)?repeatedGroup('insumosOpcao','Insumos desta opção','Consumo adicional à ficha base, por unidade vendida. Use somente a quantidade extra.',values.ingredientes):''}<button class="remove-row" type="button" data-remove-row="1" aria-label="Remover linha">Remover</button></div>`;
 }
 function repeatedGroup(group,title,description,values=[]) {
  return `<div class="repeat-area" data-repeater="${group}"><h4>${title}</h4><p>${description}</p><div class="repeat-rows">${(values||[]).map(v=>repeatedRow(group,v)).join('')}</div><button type="button" class="add-line" data-add-row="${group}">+ Adicionar ${title.toLowerCase()}</button></div>`;
@@ -148,8 +184,10 @@ function productForm(product) {
  <fieldset><legend>4 · Personalização do pedido</legend>${repeatedGroup('variacoes','Variações','Tamanhos com preços próprios. Quando preenchidas, o cliente escolhe uma.',p.variacoes)}${repeatedGroup('adicionais','Adicionais','Complementos opcionais cobrados além do prato.',p.adicionais)}<label>Observações permitidas / instruções<textarea name="observacoesPermitidas" maxlength="500" rows="2" placeholder="Ex.: sem cebola; ponto da carne">${esc(p.observacoesPermitidas||'')}</textarea></label></fieldset>
  <fieldset><legend>5 · Saúde, etiquetas e tributos</legend><div class="form-grid"><label>Alérgenos<textarea name="alergenos" maxlength="500" placeholder="Glúten, leite, ovos...">${esc(p.alergenos||'')}</textarea></label><label>Tags<textarea name="tags" maxlength="500" placeholder="Vegano, vegetariano, sem glúten, picante...">${esc(p.tags||'')}</textarea></label>${f('calorias','Calorias (kcal, opcional)','number',p.calorias??'','min="0" max="100000"')}${f('ncm','NCM (8 dígitos)','text',p.ncm||'','pattern="[0-9]{8}" maxlength="8"')}${f('cfop','CFOP (4 dígitos)','text',p.cfop||'','pattern="[0-9]{4}" maxlength="4"')}${f('cstCsosn','CST / CSOSN','text',p.cstCsosn||'','pattern="[0-9]{2,4}" maxlength="4"')}${f('aliquotaIcms','Alíquota ICMS (%)','number',p.aliquotaIcms??'','min="0" max="100" step="0.01"')}</div><p class="form-note">Os campos tributários são apenas para cadastro. A emissão de NF-e/NFC-e exige integração fiscal homologada.</p></fieldset></div>`;
  let photo=p.imagemUrl||null;
- const collectRows=group=>[...document.querySelectorAll(`[data-repeater="${group}"] .repeat-row`)].map(el=>{
-  const data={};el.querySelectorAll('input,select').forEach(f=>{let v=f.value.trim();data[f.name]=['preco','quantidade'].includes(f.name)?Number(v):['ingredienteId','diaSemana'].includes(f.name)?Number(v):v});return data;
+ const collectRows=(group,scope=document)=>[...scope.querySelectorAll(`[data-repeater="${group}"] > .repeat-rows > .repeat-row`)].map(el=>{
+  const data={};el.querySelectorAll(':scope > input, :scope > label > input, :scope > label > select').forEach(f=>{let v=f.value.trim();data[f.name]=['preco','quantidade'].includes(f.name)?Number(v):['ingredienteId','diaSemana','id'].includes(f.name)?Number(v):v});
+  if(['variacoes','adicionais'].includes(group))data.ingredientes=collectRows('insumosOpcao',el);
+  return data;
  });
  adminDialog(p.id?'Editar produto completo':'Cadastrar novo produto',html,async d=>{
   const file=$('product-photo').files[0];
@@ -179,7 +217,7 @@ function orderDetails(id) {
 function tableDetails(id) {
  const m=(adminState.data.tables||[]).find(m=>Number(m.id)===Number(id));if(!m)return;
  const orders=(adminState.data.orders||[]).filter(p=>Number(p.mesa_id)===Number(id)&&p.status!=='CANCELADO'&&!paid(p));
- adminDialog('Mesa '+m.numero,`<p class="detail-meta">${esc(m.status)} · ${m.capacidade_pessoas||'—'} lugares</p>${orders.length?`<ul class="detail-list">${orders.map(p=>`<li><span>Pedido #${p.id} · ${esc(p.cliente)}</span><b>${brl(p.total)}</b></li>`).join('')}</ul><p class="detail-meta">A mesa é liberada após cancelar o pedido ou confirmar seu pagamento.</p>`:'<p class="detail-meta">Nenhum pedido em aberto nesta mesa.</p>'}`,null);
+ adminDialog('Mesa '+m.numero,`<p class="detail-meta">${esc(m.status)} · ${m.capacidade_pessoas||'—'} lugares</p>${orders.length?`<ul class="detail-list">${orders.map(p=>`<li><span>Pedido #${p.id} · ${esc(p.cliente)}</span><b>${brl(p.total)}</b></li>`).join('')}</ul><p class="detail-meta">Com caixa ativo, confirme o pagamento para liberar a mesa. Sem caixa, a entrega libera a mesa automaticamente.</p>`:'<p class="detail-meta">Nenhum pedido em aberto nesta mesa.</p>'}`,m.status==='OCUPADA'?()=>api(`admin/mesas/${id}/liberar`,'POST'):null,'Liberar mesa');
 }
 function paymentForm(id) {
  const p=(adminState.data.orders||[]).find(p=>Number(p.id)===Number(id));if(!p)return;
@@ -190,7 +228,7 @@ function createAdminRecord() {
  if(page==='Cardápio')return productForm();
 
  if(page==='Mesas')return adminDialog('Nova mesa',inputField('numero','Número da mesa','number','','required min="1" step="1"')+inputField('capacidade','Quantidade de lugares','number','4','required min="1" step="1"'),d=>api('admin/mesas','POST',{numero:Number(d.get('numero')),capacidade:Number(d.get('capacidade'))}));
- if(page==='Estoque')return adminDialog('Novo ingrediente',inputField('nome','Nome','text','','required maxlength="120"')+selectField('unidade','Unidade de medida',[['kg','Quilogramas (kg)'],['g','Gramas (g)'],['L','Litros (L)'],['ml','Mililitros (ml)'],['un','Unidades (un)']])+inputField('custoUnitario','Custo por unidade (R$)','number',0,'required min="0" step="0.0001"'),d=>api('admin/estoque','POST',{nome:d.get('nome').trim(),unidade:d.get('unidade'),custoUnitario:Number(d.get('custoUnitario'))}));
+ if(page==='Estoque')return adminDialog('Novo ingrediente',inputField('nome','Nome','text','','required maxlength="120"')+selectField('unidade','Unidade de medida',[['kg','Quilogramas (kg)'],['g','Gramas (g)'],['L','Litros (L)'],['ml','Mililitros (ml)'],['un','Unidades (un)']])+inputField('custoUnitario','Custo por unidade (R$)','number',0,'required min="0" step="0.0001"')+inputField('quantidadeMinima','Estoque mínimo','number',0,'required min="0" step="0.001"'),d=>api('admin/estoque','POST',{nome:d.get('nome').trim(),unidade:d.get('unidade'),custoUnitario:Number(d.get('custoUnitario')),quantidadeMinima:Number(d.get('quantidadeMinima'))}));
  if(page==='Clientes')return adminDialog('Novo cliente',inputField('nome','Nome completo','text','','required maxlength="120"')+inputField('email','E-mail','email','','required maxlength="180"')+inputField('senha','Senha inicial (12 a 60 caracteres)','password','','required minlength="12" maxlength="60" autocomplete="new-password"'),d=>{const password=d.get('senha');if(new TextEncoder().encode(password).length>72)throw Error('A senha deve ter no máximo 72 bytes. Use menos caracteres especiais.');return api('admin/usuarios','POST',{nome:d.get('nome').trim(),email:d.get('email').trim(),senha:password,perfil:'CLIENTE'});});
 }
 async function adminClick(event) {
@@ -198,7 +236,7 @@ async function adminClick(event) {
  if(button.dataset.nav){goAdmin(button.dataset.nav);return;}
  const action=button.dataset.action;
  if(action==='menu'){const app=document.querySelector('.admin-app');app.classList.toggle(innerWidth<=960?'menu-open':'compact');return;}
- if(action==='logout'){adminState.version++;limparSessao();$('root').onclick=null;login();return;}
+ if(action==='logout'){adminState.version++;revogarSessaoNoServidor();limparSessao();$('root').onclick=null;login();return;}
  if(action==='notifications'){goAdmin('Pedidos');adminState.status='RECEBIDO';return;}
  if(action==='refresh'){await renderAdmin();return;}
  if(action==='export'){const rows=[['Data','Pagamentos','Total recebido'],...(adminState.data.sales||[]).filter(matches).map(r=>[r.dia,r.pagamentos,Number(r.total).toFixed(2).replace('.',',')])];const blob=new Blob(['\ufeff'+rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='restoerp-recebimentos.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;}
@@ -209,6 +247,7 @@ async function adminClick(event) {
   else if(button.dataset.table)tableDetails(button.dataset.table);
   else if(button.dataset.product)productForm((adminState.data.products||[]).find(p=>Number(p.id)===Number(button.dataset.product)));
   else if(button.dataset.pay)paymentForm(button.dataset.pay);
+  else if(button.dataset.minimum){const id=button.dataset.minimum,item=(adminState.data.stock||[]).find(x=>String(x.id)===id);adminDialog('Estoque mínimo · '+(item?.nome||''),inputField('quantidadeMinima','Quantidade mínima na unidade do ingrediente','number',item?.quantidade_minima||0,'required min="0" step="0.001"'),d=>api(`admin/estoque/${id}/minimo`,'PUT',{quantidadeMinima:Number(d.get('quantidadeMinima'))}));}
   else if(button.dataset.cost){const id=button.dataset.cost,item=(adminState.data.stock||[]).find(x=>String(x.id)===id);adminDialog('Custo unitário · '+(item?.nome||''),inputField('custoUnitario','Custo por unidade (R$)','number',item?.custo_unitario||0,'required min="0" step="0.0001"'),d=>api(`admin/estoque/${id}/custo`,'PUT',{custoUnitario:Number(d.get('custoUnitario'))}));}
   else if(button.dataset.stock){const id=button.dataset.stock;adminDialog('Movimentar estoque',inputField('quantidade','Quantidade (positiva para entrada, negativa para saída)','number','','required step="0.001"')+inputField('motivo','Motivo da movimentação','text','','required maxlength="255"'),d=>api(`admin/estoque/${id}/movimentos`,'POST',{quantidade:Number(d.get('quantidade')),motivo:d.get('motivo')}));}
   else if(button.dataset.step){await api(`cozinha/pedidos/${button.dataset.step}/status`,'PATCH',{status:button.dataset.next});await renderAdmin();}

@@ -20,15 +20,17 @@ public record ProdutoRequest(
  @Pattern(regexp="[0-9]{8}") String ncm, @Pattern(regexp="[0-9]{4}") String cfop,
  @Pattern(regexp="[0-9]{2,4}") String cstCsosn,
  @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal aliquotaIcms,
- @Size(max=30) List<@Valid Variacao> variacoes,
- @Size(max=40) List<@Valid Adicional> adicionais,
- @Size(max=100) List<@Valid Insumo> fichaTecnica,
- @Size(max=35) List<@Valid Horario> disponibilidade
+ @Size(max=30) List<@NotNull @Valid Variacao> variacoes,
+ @Size(max=40) List<@NotNull @Valid Adicional> adicionais,
+ @Size(max=100) List<@NotNull @Valid Insumo> fichaTecnica,
+ @Size(max=35) List<@NotNull @Valid Horario> disponibilidade
 ) {
  public record Variacao(@NotBlank @Size(max=80) String nome,
-    @NotNull @DecimalMin("0.01") @Digits(integer=10,fraction=2) BigDecimal preco) {}
+    @NotNull @DecimalMin("0.01") @Digits(integer=10,fraction=2) BigDecimal preco,
+    @Positive Long id, @Size(max=100) List<@NotNull @Valid Insumo> ingredientes) {}
  public record Adicional(@NotBlank @Size(max=80) String nome,
-    @NotNull @DecimalMin("0.00") @Digits(integer=10,fraction=2) BigDecimal preco) {}
+    @NotNull @DecimalMin("0.00") @Digits(integer=10,fraction=2) BigDecimal preco,
+    @Positive Long id, @Size(max=100) List<@NotNull @Valid Insumo> ingredientes) {}
  public record Insumo(@NotNull @Positive Long ingredienteId,
     @NotNull @DecimalMin("0.001") @Digits(integer=9,fraction=3) BigDecimal quantidade) {}
  public record Horario(@NotNull @Min(1) @Max(7) Integer diaSemana,

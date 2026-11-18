@@ -52,6 +52,12 @@ public class AuthService {
         }
         usuario.alterarSenhaHash(encoder.encode(request.novaSenha()));
     }
+    @Transactional
+    public void logout(String email) {
+        Usuario usuario = usuarios.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        usuario.revogarSessoes();
+    }
     private void validarTamanhoSenha(String senha) {
         if (senha.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A senha deve ter no máximo 72 bytes em UTF-8.");

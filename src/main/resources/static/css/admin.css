@@ -24,3 +24,25 @@ body:has(.admin-app) dialog{width:520px;color:#420e16;background:#fffdfa;border:
 /* Cadastro administrativo em etapas */
 body:has(.admin-app) dialog:has(.product-form){width:min(850px,96vw);max-height:88vh;overflow-y:auto}body:has(.admin-app) dialog .product-form fieldset{margin:16px 0;border:1px solid #e7d8cf;border-radius:15px;padding:18px;background:#fff}body:has(.admin-app) dialog .product-form legend{font-weight:800;color:#80342e;font-size:15px;padding:0 8px}body:has(.admin-app) dialog .product-form .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}body:has(.admin-app) dialog .product-form .form-grid>label,body:has(.admin-app) dialog .product-form .repeat-row>label{display:flex;flex-direction:column;min-width:0}body:has(.admin-app) dialog .product-form .photo-picker{margin:18px 0 10px}body:has(.admin-app) dialog .product-form .repeat-area{border-top:1px dashed #ead7d0;padding:17px 0;margin-top:15px}body:has(.admin-app) dialog .product-form .repeat-area h4{font-size:14px;margin:0 0 6px;color:#63313b}body:has(.admin-app) dialog .product-form .repeat-area p,body:has(.admin-app) dialog .product-form .form-note,body:has(.admin-app) dialog .product-form .form-description{font-size:12px;color:#886e6b;line-height:1.5}body:has(.admin-app) dialog .product-form .repeat-row{background:#fff7f2;border:1px solid #eddfd4;border-radius:10px;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;gap:9px;align-items:end;margin-bottom:9px}body:has(.admin-app) dialog .product-form [data-repeater=disponibilidade] .repeat-row{grid-template-columns:1fr 1fr 1fr auto}body:has(.admin-app) dialog .product-form .remove-row{border:1px solid #eac3ba;border-radius:8px;background:#fff1eb;color:#9a483c;padding:11px;cursor:pointer;font-size:12px}body:has(.admin-app) dialog .product-form .cost-preview{font-size:15px;background:#fff3e8;color:#81341a;border-radius:10px;padding:14px;font-weight:700}body:has(.admin-app) dialog .product-form textarea{min-height:70px;resize:vertical}
 @media(max-width:650px){body:has(.admin-app) dialog .product-form .form-grid,body:has(.admin-app) dialog .product-form .repeat-row,body:has(.admin-app) dialog .product-form [data-repeater=disponibilidade] .repeat-row{grid-template-columns:1fr}body:has(.admin-app) dialog:has(.product-form){padding:12px}body:has(.admin-app) dialog .product-form fieldset{padding:12px}}
+
+.repeat-row > .repeat-area { grid-column: 1 / -1; min-width: 0; order: 1; }
+/* Identidade visual integrada a partir do modelo Sabor & Brasa. */
+.admin-app{--wine:#0f172a;--orange:#f97316;--muted:#64748b;--line:#e2e8f0;--surface:#fff;--bg:#f8fafc;color:#0f172a;font-family:Inter,Arial,sans-serif}
+.admin-app .sidebar{background:#0f172a;color:#cbd5e1;overflow-y:auto}
+.admin-app .brand{border-color:#1e293b}.admin-app .brand small{color:#94a3b8}
+.admin-app .sidebar nav button{color:#cbd5e1;font-size:14px;border-radius:10px}
+.admin-app .sidebar nav button.active{background:#f973161a;color:#fb923c;box-shadow:inset 3px 0 #f97316}
+.admin-app .sidebar nav button:hover{background:#1e293b}.admin-app .sidebar-art{display:none}
+.admin-app .sidebar-bottom button{background:#1e293b}
+.admin-app .topbar{background:#fff;border-color:#e2e8f0;box-shadow:none}
+.admin-app .global-search{background:#f8fafc;border-color:#e2e8f0}
+.admin-app .panel,.admin-app .stat,.admin-app .product-card,.admin-app .table-card,.admin-app .setting,.admin-app .order-card{background:#fff;border-color:#e2e8f0;box-shadow:0 1px 3px #0f172a08;border-radius:16px}
+.admin-app .stat-icon{background:#fff7ed;color:#ea580c}.admin-app .stat-watermark{display:none}
+.admin-app .stat-label,.admin-app .stat-foot,.admin-app td small,.admin-app .page-heading p,.admin-app .profile small{color:#64748b}
+.admin-app th{background:#f8fafc;color:#64748b}.admin-app td{border-color:#f1f5f9}
+.admin-app .panel-head>.icon,.admin-app .text-button{color:#ea580c}
+.admin-app .action{background:#ea580c;border-radius:10px}.admin-app .action:hover{background:#c2410c}
+.admin-app .ghost{color:#334155;border-color:#e2e8f0}.admin-app .kanban-column{background:#f1f5f9}
+.admin-app .avatar{background:#ffedd5;color:#c2410c}.admin-app .rank,.admin-app .table-number{background:#fff7ed;color:#c2410c}
+.admin-app .badge.ENTREGUE{background:#dcfce7;color:#15803d}
+body:has(.admin-app) dialog{background:#fff;color:#0f172a;border-color:#e2e8f0}

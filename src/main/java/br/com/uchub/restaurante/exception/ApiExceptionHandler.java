@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ApiExceptionHandler.class);
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<?> status(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("timestamp", LocalDateTime.now(), "status", ex.getStatusCode().value(), "message", ex.getReason() == null ? "Requisição não processada." : ex.getReason()));
@@ -36,7 +37,8 @@ public class ApiExceptionHandler {
     }
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> unexpected(Exception ex) {
-        // Não expõe stack trace, SQL, credenciais ou detalhes internos ao cliente.
+        // Detalhes somente nos logs do servidor; a resposta permanece genérica.
+        log.error("Falha inesperada ao processar requisição", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("timestamp", LocalDateTime.now(), "status", 500, "message", "Erro interno. Consulte os logs do servidor."));
     }
 }

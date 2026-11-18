@@ -33,7 +33,12 @@ public class PainelController {
         return painel.resumo(data==null ? LocalDate.now(ZoneId.of("America/Sao_Paulo")) : data, habilitado("CAIXA_E_PAGAMENTOS"), habilitado("CONTROLE_ESTOQUE"));
     }
     @GetMapping("/pedidos/detalhes")
-    public List<Map<String,Object>> pedidos() { return painel.pedidos(); }
+    public List<Map<String,Object>> pedidos(@RequestParam(required=false) Long antesDe) {
+        if(antesDe!=null && antesDe<1)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Cursor inválido.");
+        return antesDe==null?painel.pedidos():painel.pedidos(antesDe);
+    }
+    @GetMapping("/pedidos/contagem")
+    public Map<String,Long> contagem() { return Map.of("recebidos",painel.pedidosRecebidos()); }
     @GetMapping("/clientes")
     public List<Map<String,Object>> clientes() { return painel.clientes(); }
     private boolean habilitado(String codigo) { return recursos.findByCodigo(codigo).map(r -> r.isHabilitado()).orElse(false); }

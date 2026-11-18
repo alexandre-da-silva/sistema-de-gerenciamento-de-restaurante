@@ -28,6 +28,7 @@ public class JwtService {
                 .expiresAt(agora.plus(expirationMinutes, ChronoUnit.MINUTES))
                 .subject(usuario.getEmail())
                 .claim("userId", usuario.getId())
+                .claim("tokenVersion", usuario.getTokenVersion())
                 .claim("nome", usuario.getNome())
                 .claim("perfil", usuario.getPerfil().name())
                 .claim("authorities", List.of("ROLE_" + usuario.getPerfil().name()))

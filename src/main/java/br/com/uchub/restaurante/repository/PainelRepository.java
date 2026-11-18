@@ -12,23 +12,30 @@ public class PainelRepository {
     private final JdbcTemplate jdbc;
     public PainelRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    public List<Map<String, Object>> pedidos() {
+    public List<Map<String, Object>> pedidos() { return pedidos(null); }
+
+    public List<Map<String, Object>> pedidos(Long antesDe) {
         var pedidos = jdbc.queryForList("""
             SELECT p.id,p.cliente_id,p.mesa_id,m.numero AS mesa,u.nome AS cliente,
                    p.status,p.total,p.observacao,p.criado_em,
                    EXISTS(SELECT 1 FROM pagamentos pg WHERE pg.pedido_id=p.id AND pg.status='CONFIRMADO') AS pago
             FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id LEFT JOIN mesas m ON m.id=p.mesa_id
+            WHERE p.id < ?
             ORDER BY p.id DESC LIMIT 500
-            """);
+            """, antesDe==null?Long.MAX_VALUE:antesDe);
         if (pedidos.isEmpty()) return pedidos;
         String placeholders = String.join(",", Collections.nCopies(pedidos.size(), "?"));
-        var itens = jdbc.queryForList("SELECT i.pedido_id,i.produto_id,p.nome AS produto,i.quantidade,i.preco_unitario,i.subtotal,i.variacao_nome,i.adicionais_descricao FROM itens_pedido i JOIN produtos p ON p.id=i.produto_id WHERE i.pedido_id IN (" + placeholders + ") ORDER BY i.id", pedidos.stream().map(p -> p.get("id")).toArray());
+        var itens = jdbc.queryForList("SELECT i.pedido_id,i.produto_id,COALESCE(i.produto_nome,p.nome) AS produto,i.quantidade,i.preco_unitario,i.subtotal,i.variacao_nome,i.adicionais_descricao,i.observacao_item FROM itens_pedido i JOIN produtos p ON p.id=i.produto_id WHERE i.pedido_id IN (" + placeholders + ") ORDER BY i.id", pedidos.stream().map(p -> p.get("id")).toArray());
         Map<Long, List<Map<String, Object>>> agrupados = new HashMap<>();
         for (var item : itens) agrupados.computeIfAbsent(((Number)item.get("pedido_id")).longValue(), id -> new ArrayList<>()).add(item);
         for (var pedido : pedidos) pedido.put("itens", agrupados.getOrDefault(((Number)pedido.get("id")).longValue(), List.of()));
         return pedidos;
     }
 
+    public long pedidosRecebidos() {
+        Long total=jdbc.queryForObject("SELECT COUNT(*) FROM pedidos WHERE status='RECEBIDO'",Long.class);
+        return total==null?0:total;
+    }
     public List<Map<String, Object>> clientes() {
         return jdbc.queryForList("""
             SELECT u.id,u.nome,u.email,u.telefone,u.ativo,u.criado_em,

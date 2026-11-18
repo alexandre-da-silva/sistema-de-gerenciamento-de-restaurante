@@ -5,6 +5,7 @@ function limparSessao() {
   token=''; perfil=''; nomeUsuario=''; page='';
   try { sessionStorage.removeItem('astrachefe:sessao:v1'); } catch {}
   if(typeof pararAtualizacaoAdmin==='function') pararAtualizacaoAdmin();
+  if(typeof pararAtualizacaoCozinha==='function') pararAtualizacaoCozinha();
 }
 async function restaurarSessao() {
   let dados;
@@ -14,11 +15,16 @@ async function restaurarSessao() {
   page=dados.page|| (perfil==='ADMIN'?'Dashboard':perfil==='COZINHA'?'Cozinha':'Início');
   try {
     const atual=await api('auth/me');
-    if(atual.perfil!==perfil)throw Error('Perfil atualizado; entre novamente.');
+    if(atual.perfil!==perfil){limparSessao();login();return;}
     nomeUsuario=atual.nome;
     salvarSessao();
     render();
-  }catch { limparSessao(); login(); }
+  }catch(error) {
+    if(error.status===401){limparSessao();login();return;}
+    $('root').innerHTML='<div class="auth-page"><section class="login"><h1>Conexão interrompida</h1><p role="alert">Não foi possível recuperar sua sessão agora. Seu acesso foi preservado.</p><button id="retry-session" class="action">Tentar novamente</button><button id="leave-session" class="ghost">Sair desta conta</button></section></div>';
+    $('retry-session').onclick=restaurarSessao;
+    $('leave-session').onclick=()=>{revogarSessaoNoServidor();limparSessao();login();};
+  }
 }
 function iniciarSessao(response) {
   token = response.accessToken;
